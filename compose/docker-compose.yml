@@ -212,8 +212,8 @@ services:
     container_name: frontend
     restart: always
     environment:
-      # KB_API这个应设置为后端服务暴露的地址，域名或者可访问到 http://ip:port/api/v1/，例如http://chatdoc-backend-gateway.chatdoc.com/api/v1/
-      KB_API: http://127.0.0.1:48092/api/v1/
+      # KB_API这个应设置为后端服务暴露的地址，域名或者可访问到 http://ip:port，例如http://chatdoc-backend-gateway.chatdoc.com
+      KB_API: http://127.0.0.1:48092
       PORT: 3001
     ports:
       - "0.0.0.0:48091:3001"
