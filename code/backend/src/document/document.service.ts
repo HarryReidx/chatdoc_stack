@@ -1133,11 +1133,11 @@ export class DocumentService {
   }
 
   // 解析超时状态改为失败
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async setParseTimeout() {
     const parseList = await this.documentRepository.findBy({
       status: In([DocumentStatus.uploaded, DocumentStatus.docparser, DocumentStatus.catalog]),
-      updateTime: LessThan(dayjs().subtract(5, 'minutes').toDate()),
+      updateTime: LessThan(dayjs().subtract(10, 'minutes').toDate()),
     });
     for (const item of parseList) {
       Logger.log(item.id, '文档解析超时');

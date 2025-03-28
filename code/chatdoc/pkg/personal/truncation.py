@@ -32,14 +32,13 @@ def truncation(context: Context) -> Context:
     """
     截断
     """
-    if len(context.locationfiles) < 2:
-        # topP
-        context.rerank_retrieve_before_qa = top_p(context.rerank_retrieve_before_qa, top_p_score=config['infer']['rough_rank_score'])
-        # topN
-        if len(context.rerank_retrieve_before_qa) > config["retrieve"]["retrieval_top_n"]:
-            context.rerank_retrieve_before_qa = context.rerank_retrieve_before_qa[:config["retrieve"]["retrieval_top_n"]]
-        # token limit
-        context.rerank_retrieve_before_qa = truncation_by_token_limit(context.rerank_retrieve_before_qa, max_length=int(config["retrieve"]["retrieval_max_length"] / 2))
+    # topP
+    context.rerank_retrieve_before_qa = top_p(context.rerank_retrieve_before_qa, top_p_score=config['infer']['rough_rank_score'])
+    # topN
+    if len(context.rerank_retrieve_before_qa) > config["retrieve"]["retrieval_top_n"]:
+        context.rerank_retrieve_before_qa = context.rerank_retrieve_before_qa[:config["retrieve"]["retrieval_top_n"]]
+    # token limit
+    context.rerank_retrieve_before_qa = truncation_by_token_limit(context.rerank_retrieve_before_qa, max_length=int(config["retrieve"]["retrieval_max_length"] / 2))
     return context
 
 

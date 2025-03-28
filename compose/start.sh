@@ -41,16 +41,16 @@ SERVICES="$@"
 echo "正在检查 Docker Compose 服务是否正在运行..."
 
 # 检查是否有正在运行的容器
-RUNNING_CONTAINERS=$(docker-compose ps -q $SERVICES)
+RUNNING_CONTAINERS=$(docker compose ps -q $SERVICES)
 
 # 如果未找到正在运行的容器，启动服务
 if [ -z "$RUNNING_CONTAINERS" ]; then
   if [ -z "$SERVICES" ]; then
     echo "未找到正在运行的 Docker Compose 服务，正在启动所有服务..."
-    docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d
+    docker compose -f "${DOCKER_COMPOSE_FILE}" up -d
   else
     echo "未找到正在运行的服务：$SERVICES，正在启动指定服务..."
-    docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d ${SERVICES}
+    docker compose -f "${DOCKER_COMPOSE_FILE}" up -d ${SERVICES}
   fi
 
   # 循环检查服务状态，最多 6 次，每次间隔 10 秒
@@ -61,7 +61,7 @@ if [ -z "$RUNNING_CONTAINERS" ]; then
     sleep $RETRY_INTERVAL
 
     # 检查服务是否运行
-    RUNNING_CONTAINERS=$(docker-compose -f "${DOCKER_COMPOSE_FILE}" ps -q ${SERVICES})
+    RUNNING_CONTAINERS=$(docker compose -f "${DOCKER_COMPOSE_FILE}" ps -q ${SERVICES})
 
     if [ -z "$RUNNING_CONTAINERS" ]; then
       echo "错误：服务启动失败，未找到正在运行的容器。"
@@ -90,9 +90,9 @@ else
   echo "Docker Compose 服务正在运行，正在进行重启..."
 
   if [ -z "${SERVICES}" ]; then
-    docker-compose -f "${DOCKER_COMPOSE_FILE}" down && docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d
+    docker compose -f "${DOCKER_COMPOSE_FILE}" down && docker compose -f "${DOCKER_COMPOSE_FILE}" up -d
   else
-    docker-compose -f "${DOCKER_COMPOSE_FILE}" pull && docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d --no-deps ${SERVICES}
+    docker compose -f "${DOCKER_COMPOSE_FILE}" pull && docker compose -f "${DOCKER_COMPOSE_FILE}" up -d --no-deps ${SERVICES}
   fi
 
   echo "服务已成功重启！"

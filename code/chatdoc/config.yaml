@@ -54,17 +54,17 @@ parse:
   engine: 'pdf2md' # doc_parser / pdf2md
 retrieve:
   fixed_table_keyword_threshold: 0.65
-  three_table_keyword_threshold: 0.8
+  # three_table_keyword_threshold: 0.8
   # 层级top返回数
-  es_embedding_hierarchy_top_n: 1
-  es_keyword_title_top_n: 1
+  # es_embedding_hierarchy_top_n: 1
+  # es_keyword_title_top_n: 1
   # paragraph节点embedding返回数
-  es_retriver_paragraphs_bm25_top_n: 20
-  es_retriver_paragraphs_top_n: 20
-  retrieval_top_n: 15
+  # es_retriver_paragraphs_bm25_top_n: 20
+  # es_retriver_paragraphs_top_n: 20
+  retrieval_top_n: 15 # 最多召回的片段数
   retrieval_max_length: 30000
   # paragraph单个片段最长长度
-  retrieval_paragraph_flagment_max_length: 2000
+  # retrieval_paragraph_flagment_max_length: 2000
 location:
   base_file_path: '{BASE_DIR}/data/'
   summary_cache_path: '{BASE_DIR}/__summary_cache__/'

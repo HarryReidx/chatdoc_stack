@@ -14,7 +14,7 @@ export const baseConfig: MysqlConnectionOptions = {
   username: process.env.MYSQL_USERNAME || 'root',
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE || 'gpt_qa',
-  timezone: process.env.MYSQL_TIMEZONE || '+08:00',
+  timezone: process.env.MYSQL_TIMEZONE || '+00:00',
   entityPrefix: process.env.MYSQL_TABLE_PREFIX,
 };
 
