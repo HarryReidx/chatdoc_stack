@@ -153,6 +153,10 @@ class PDocTableES(object):
 
         op_fields = PDocTableModel.keys(exclude=["acge_embedding", "peg_embedding"])
 
+        must_conditions=[dict(term=dict(user_id=user_id))]
+        if document_uuids:
+            must_conditions.append(dict(terms=dict(uuid=document_uuids)))
+
         hits = es_retrieve(index=self.index_name,
                            text=bm25_text,
                            text_for_embedding=ebd_text,
@@ -163,10 +167,7 @@ class PDocTableES(object):
                                # EmbeddingArgs(type=EmbeddingType.acge, field="acge_embedding", size=size, dimension=512),
                                # EmbeddingArgs(type=EmbeddingType.peg, field="peg_embedding", size=size),
                            ],
-                           must_conditions=[
-                               dict(terms=dict(uuid=document_uuids)),
-                               dict(term=dict(user_id=user_id))
-                           ],
+                           must_conditions=must_conditions,
                            )
 
         hits = self.filter_by_embedding(hits, ebd_text, match_score=0.5)

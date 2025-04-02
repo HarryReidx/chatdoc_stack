@@ -110,7 +110,7 @@ def generate_context(context: Context):
             _context += file_entity.get_file_desc_md(context.company_mapper) + "\n"
             temp_group_context.append("# 来源文档\n" + file_entity.get_file_desc_md(context.company_mapper) + "\n")
         each_contexts = ''
-        # 每份文件召回全选
+        # 每份文件召回
         for r_context in r_contexts:
             r_context: RetrieveContext
             r_llm_text = r_context.tree_text
@@ -123,11 +123,11 @@ def generate_context(context: Context):
             else:
                 # 标题 + 段落
                 each_contexts += r_llm_text + "\n\n"
+        if len(_context) + len(each_contexts) > max_length:
+            temp_group_context[ind] += each_contexts[:max_length - len(_context)]
+            break
         _context += each_contexts
         temp_group_context[ind] += each_contexts
-        if len(_context) > max_length:
-            break
-    # _context = _context[:max_length]
     temp_group_context_ = process_list(temp_group_context)
     p_context = "".join(temp_group_context_)
     return p_context

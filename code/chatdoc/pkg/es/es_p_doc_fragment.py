@@ -232,6 +232,10 @@ class PDocFragmentES(object):
     def search_fragment(self, bm25_text, ebd_text, user_id, document_uuids, size=10) -> list[PDocFragmentModel]:
         from pkg.es.es_p_retrieval import EmbeddingArgs, es_retrieve
 
+        must_conditions=[dict(term=dict(user_id=user_id))]
+        if document_uuids:
+            must_conditions.append(dict(terms=dict(file_uuid=document_uuids)))
+
         hits = es_retrieve(index=self.index_name,
                            text=bm25_text,
                            text_for_embedding=ebd_text,
@@ -242,10 +246,7 @@ class PDocFragmentES(object):
                                EmbeddingArgs(type=EmbeddingType.acge, field="acge_embedding", size=size, dimension=1024),
                                #    EmbeddingArgs(type=EmbeddingType.peg, field="peg_embedding", size=size),
                            ],
-                           must_conditions=[
-                               dict(terms=dict(file_uuid=document_uuids)),
-                               dict(term=dict(user_id=user_id))
-                           ],
+                           must_conditions=must_conditions,
                            )
 
         return [PDocFragmentModel.from_hit(hit) for hit in hits]
