@@ -147,7 +147,7 @@ services:
       - chatdoc
 
   chatdoc:
-    image: crpi-fzu683ul2d9e6wu3.cn-hangzhou.personal.cr.aliyuncs.com/intsig-chatdoc/chatdoc:open-v1.0.0
+    image: crpi-fzu683ul2d9e6wu3.cn-hangzhou.personal.cr.aliyuncs.com/intsig-chatdoc/chatdoc:open-v1.0.1
     container_name: chatdoc
     restart: always
     environment:
@@ -177,7 +177,7 @@ services:
       
   # 后端
   backend:
-    image: crpi-fzu683ul2d9e6wu3.cn-hangzhou.personal.cr.aliyuncs.com/intsig-chatdoc/backend:open-v1.0.0
+    image: crpi-fzu683ul2d9e6wu3.cn-hangzhou.personal.cr.aliyuncs.com/intsig-chatdoc/backend:open-v1.0.1
     container_name: backend
     restart: always
     depends_on:
