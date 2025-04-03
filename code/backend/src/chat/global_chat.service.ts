@@ -278,9 +278,6 @@ export class GlobalChatService {
       }
       const original = { response: data, request: params };
       fullTime = Date.now().valueOf() - startTime;
-      const zhuGeIOHeaders = {
-        'User-Agent': request.headers['user-agent'],
-      };
       if (!data) {
         // log
         data = {};

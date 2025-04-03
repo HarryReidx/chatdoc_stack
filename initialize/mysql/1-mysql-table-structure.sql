@@ -210,7 +210,7 @@ CREATE TABLE `t_content` (
   `chat_id` int NOT NULL COMMENT '对话记录id',
   `content` text NOT NULL COMMENT '问/答的内容',
   `type` tinyint NOT NULL COMMENT '类型（提问/回答）',
-  `source` text COMMENT '回答内容source',
+  `source` mediumtext COMMENT '回答内容source',
   `feedback` tinyint DEFAULT NULL COMMENT '用户反馈',
   `create_time` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `update_time` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',

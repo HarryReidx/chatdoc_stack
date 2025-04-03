@@ -41,7 +41,7 @@ export class Content {
   @Column({ type: 'tinyint', comment: '类型（提问/回答）' })
   type: ContentType;
 
-  @Column({ type: 'text', nullable: true, comment: '回答内容source' })
+  @Column({ type: 'mediumtext', nullable: true, comment: '回答内容source' })
   source: string;
 
   @Column({ type: 'tinyint', nullable: true, comment: '用户反馈' })
