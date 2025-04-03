@@ -83,7 +83,7 @@ cd chatdoc_stack
     ```bash
     cd compose
     chmod +x initialize.sh
-    ./initialize.sh
+    ./initialize.sh all
     ```
     - 如果需要跨机器访问，请修改 docker-compose.yml 文件中的 KB_API 地址为后端暴露的公网地址。
     - 初始化服务后，修改配置，运行命令 compose/start.sh 即可
