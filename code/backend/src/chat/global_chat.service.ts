@@ -293,7 +293,7 @@ export class GlobalChatService {
         complianceCheck: currentComplianceCheck,
         type: ContentType.answer,
         source: JSON.stringify(questionSource?.length ? questionSource : data.source),
-        extraData: { original: JSON.stringify(original), questionId },
+        extraData: { questionId },
         status: createGlobalChatDto.ignore ? ContentStatus.script : null,
       });
       const answerId = identifiers[0].id;
@@ -326,6 +326,7 @@ export class GlobalChatService {
       result = { code: 200, data: result, msg: 'success' };
       await queryRunner.commitTransaction();
     } catch (error) {
+      Logger.log(error, '原始异常');
       await queryRunner.rollbackTransaction();
       result = error;
       if (streamRes) streamRes.push(null);

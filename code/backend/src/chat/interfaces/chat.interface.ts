@@ -52,7 +52,6 @@ export interface IContentExtraData {
   answerId: number | string;
   answer: string;
   traceId?: string;
-  original: unknown;
 }
 
 export interface RetrievalSource {
