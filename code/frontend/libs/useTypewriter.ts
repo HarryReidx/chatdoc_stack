@@ -279,16 +279,17 @@ export const useTypewriter = async (options: TypewriterOptions) => {
     }
 
     return new Promise(resolve => {
-      setTimeout(
-        () => {
-          if (i < currentTotal) {
-            resolve(start(i + step, currentTotal))
-          } else {
-            resolve(true)
-          }
-        },
-        random ? speed * Math.random() : speed
-      )
+      let startTime = Date.now()
+      const stepTime = random ? speed * Math.random() : speed
+      setTimeout(() => {
+        // 页面不可见时，定时器会变慢
+        if (i < currentTotal) {
+          const realStep = Math.round((Date.now() - startTime) / stepTime)
+          resolve(start(i + realStep, currentTotal))
+        } else {
+          resolve(true)
+        }
+      }, stepTime)
     })
   }
 
@@ -300,8 +301,10 @@ export const useTypewriter = async (options: TypewriterOptions) => {
       return
     }
     writingStatus = true
-    const v = writingStack.shift() as WriteOptions
-    await _write(v.value, v.step)
+    const valStr = writingStack.reduce((pre, i) => pre + i.value, '')
+    const step = writingStack[writingStack.length - 1].step
+    writingStack.splice(0, writingStack.length)
+    await _write(valStr, step)
     writeByStack(timestamp)
   }
 
