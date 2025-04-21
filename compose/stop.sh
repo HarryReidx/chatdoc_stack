@@ -13,12 +13,12 @@ fi
 echo "正在检查 Docker Compose 服务是否正在运行..."
 
 # 检查是否有正在运行的容器
-RUNNING_CONTAINERS=$(docker-compose -f "$DOCKER_COMPOSE_FILE" ps -q)
+RUNNING_CONTAINERS=$(docker compose -f "$DOCKER_COMPOSE_FILE" ps -q)
 
 if [ -n "$RUNNING_CONTAINERS" ]; then
   echo "Docker Compose 服务正在运行，正在停止它们..."
   # 停止服务
-  docker-compose -f "$DOCKER_COMPOSE_FILE" down
+  docker compose -f "$DOCKER_COMPOSE_FILE" down
   echo "服务已成功停止！"
 else
   echo "未找到正在运行的 Docker Compose 服务。"
