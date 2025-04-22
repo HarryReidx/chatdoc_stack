@@ -34,6 +34,12 @@ chatdoc是一款基于[TextIn ParseX](https://www.textin.com/market/detail/pdf_t
 
 ## 快速开始
 
+### 系统配置要求
+
+- **CPU**：4核以上。
+- **内存**：16G以上。
+- **存储空间**：保证至少有40G以上的存储空间可用。
+
 ### 环境准备
 
 在开始之前，请确保您的系统已安装以下依赖：
@@ -41,7 +47,7 @@ chatdoc是一款基于[TextIn ParseX](https://www.textin.com/market/detail/pdf_t
 - **Docker**：用于容器化部署。
 - **Docker Compose**：用于管理多容器应用。
 - **TextIn API Key 和 Secret Key**：用于调用TextIn的解析服务。可以从[TextIn工作台](https://www.textin.com/console/dashboard/setting)获取
-- **通义千问 API Key**：用于调用通义千问的API。
+- **大模型相关配置**：用于调用大模型的API。
 
 ### 步骤 1: 🔨︎克隆仓库
 
@@ -62,11 +68,24 @@ cd chatdoc_stack
     - TEXTIN_APP_SECRET=your_textin_app_secret
   ```
 
-1. **通义千问 API Key：**
+2. **如果使用通义千问 API：**
 - 注册[通义千问](https://bailian.console.aliyun.com/)，获取千问api的key
-- 将千问api的key填入到`compose/docker-compose.yml`文件中相应位置[chatdoc服务中]，涉及到`chatdoc-proxy`、`chatdoc`两个服务
+- 将千问api的key填入到`compose/docker-compose.yml`文件中相应位置，涉及到`chatdoc-proxy`、`chatdoc`两个服务
   ```docker-compose.yml
     - TYQWAPI_API_KEY=your_tyqwan_api_key
+  ```
+
+3. **如果使用其他大模型 API：**
+- 如果是在线大模型，需要获取大模型的API Key；如果是本地大模型，需要自行搭建
+- 将大模型配置填入到`compose/docker-compose.yml`文件中相应位置，涉及到`chatdoc-proxy`、`chatdoc`两个服务
+  ```docker-compose.yml
+    # - LLM_MODEL=tyqwapi
+    # - TYQWAPI_MODEL=deepseek-v3
+    # - TYQWAPI_API_KEY=sk-xxx
+    - LLM_MODEL=deepseek
+    - DEEPSEEK_URL=your_url
+    - DEEPSEEK_MODEL=deepseek-r1
+    - DEEPSEEK_API_KEY=your_api_key
   ```
 
 

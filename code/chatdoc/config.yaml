@@ -18,8 +18,8 @@ redis:
   username: ''
   password: 'xxxx'
 threadpool:
-  doc_process_worker: 4
-  doc_process_queue_size: 40
+  doc_process_worker: 3
+  doc_process_queue_size: 60
   global_worker: 80 # embedding_concurrency
 proxy:
   url: http://xxxx
@@ -62,7 +62,7 @@ retrieve:
   # es_retriver_paragraphs_bm25_top_n: 20
   # es_retriver_paragraphs_top_n: 20
   retrieval_top_n: 15 # 最多召回的片段数
-  retrieval_max_length: 30000
+  retrieval_max_length: 30000 # 召回最长长度
   # paragraph单个片段最长长度
   # retrieval_paragraph_flagment_max_length: 2000
 location:
