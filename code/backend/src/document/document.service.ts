@@ -493,21 +493,26 @@ export class DocumentService {
         const analysisData = await analystKeyword(keywords);
         Logger.log(`data: ${JSON.stringify(analysisData)}`, 'AnalystKeyword');
 
-        // 关键词长度只有一位，直接like搜索 —— 修复case：搜索”申“，问题解析返回多个不相关的公司，导致搜索结果为空
+        // 关键词长度只有一位，直接like搜索 —— 修复case：搜索"申"，问题解析返回多个不相关的公司，导致搜索结果为空
         if (keywords.length === 1) {
           queryBuilder.andWhere(`document.name LIKE (:keyword)`, {
             keyword: `%${keywords}%`,
           });
         }
-        // 抽取公司、年份、报告类型都为空，保留keyword查询 —— 修复case：搜索”信息“、”证券“，问题解析返回为空，导致搜索结果为所有文件
+        // 抽取公司、年份、报告类型都为空，保留keyword查询 —— 修复case：搜索"信息"、"证券"，问题解析返回为空，导致搜索结果为所有文件
         else if (
           analysisData.keywords?.length &&
           !analysisData?.companies?.length &&
           !analysisData?.years?.length &&
           !analysisData?.finance_types?.length
         ) {
-          const queryKeywordsSql = analysisData.keywords.map((y) => `document.name LIKE '%${y}%'`);
-          queryBuilder.andWhere(`(${queryKeywordsSql.join(' OR ')})`);
+          const params = {};
+          const conditions = analysisData.keywords.map((keyword, index) => {
+            const paramName = `keyword${index}`;
+            params[paramName] = `%${keyword}%`;
+            return `document.name LIKE :${paramName}`;
+          });
+          queryBuilder.andWhere(`(${conditions.join(' OR ')})`, params);
         }
         // 问题解析、搜索
         else {
@@ -519,8 +524,13 @@ export class DocumentService {
           }
           // 年份
           if (analysisData?.years?.length) {
-            const queryYearSql = analysisData.years.map((y) => `document.name LIKE '%${y}%'`);
-            queryBuilder.andWhere(`(${queryYearSql.join(' OR ')})`);
+            const params = {};
+            const conditions = analysisData.years.map((year, index) => {
+              const paramName = `year${index}`;
+              params[paramName] = `%${year}%`;
+              return `document.name LIKE :${paramName}`;
+            });
+            queryBuilder.andWhere(`(${conditions.join(' OR ')})`, params);
           }
           // 报告类型
           if (analysisData?.finance_types?.length) {
@@ -634,24 +644,26 @@ export class DocumentService {
 
   async delete(ids: number[], user: IUser) {
     const queryRunner = this.dataSource.createQueryRunner();
-    const docList = await queryRunner.manager.findBy(Document, {
-      id: In(ids),
-      deleteTime: IsNull(),
-    });
-    const error = docList.find(
-      (data) =>
-        (data.type === DocumentType.library && ![IUserRole.admin].includes(user.role)) ||
-        (data.type === DocumentType.user && data.updateBy !== user.id)
-    );
-    if (error) {
-      throw new ForbiddenException('你没有该文档的权限');
-    }
-    await queryRunner.startTransaction();
     let result;
+    let libraryUuids = [];
+    let personalUuids = [];
     try {
+      const docList = await queryRunner.manager.findBy(Document, {
+        id: In(ids),
+        deleteTime: IsNull(),
+      });
+      const error = docList.find(
+        (data) =>
+          (data.type === DocumentType.library && ![IUserRole.admin].includes(user.role)) ||
+          (data.type === DocumentType.user && data.updateBy !== user.id)
+      );
+      if (error) {
+        throw new ForbiddenException('你没有该文档的权限');
+      }
+      await queryRunner.startTransaction();
       const recycleList = [];
-      const libraryUuids = [];
-      const personalUuids = [];
+      libraryUuids = [];
+      personalUuids = [];
       for (const item of docList) {
         if (item.type === DocumentType.library) {
           libraryUuids.push(item.uuid);
@@ -669,8 +681,6 @@ export class DocumentService {
       }
       await queryRunner.manager.insert(Recycle, recycleList);
 
-      await deleteChatDocByUUIDS(libraryUuids, personalUuids, user);
-
       await queryRunner.commitTransaction();
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -679,6 +689,17 @@ export class DocumentService {
       await queryRunner.release();
     }
     throwError(result);
+
+    // 将删除外部服务文档的请求移到事务外面执行
+    // 即使外部服务失败，也不会影响数据库事务
+    if (libraryUuids.length > 0 || personalUuids.length > 0) {
+      try {
+        await deleteChatDocByUUIDS(libraryUuids, personalUuids, user);
+      } catch (error) {
+        Logger.error(`删除外部文档失败: ${error.message}`, 'DocumentService');
+      }
+    }
+
     return true;
   }
 
