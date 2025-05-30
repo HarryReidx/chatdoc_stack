@@ -115,7 +115,10 @@ def infer_personal():
     params.compliance_check = False
 
     logger.info(f"personal infer params: {params.model_dump_json()}")
-    result = process(params)
+    try:
+        result = process(params)
+    except Exception as e:
+        return return_data(500, str(e))
     logger.info(f"resp trace_id: {result.trace_id}")
     if result.answer_response_iter:
         return Response(result.answer_response_iter, status=200, mimetype="text/event-stream", headers={"Connection": "keep-alive", "Cache-Control": "no-cache"})
@@ -132,7 +135,10 @@ def infer_global():
     params.compliance_check = False
 
     logger.info(f"global infer params: {params.model_dump_json()}")
-    result = process(params)
+    try:
+        result = process(params)
+    except Exception as e:
+        return return_data(500, str(e))
     logger.info(f"resp trace_id: {result.trace_id}")
     if result.answer_response_iter:
         return Response(result.answer_response_iter, status=200, mimetype="text/event-stream", headers={"Connection": "keep-alive", "Cache-Control": "no-cache"})

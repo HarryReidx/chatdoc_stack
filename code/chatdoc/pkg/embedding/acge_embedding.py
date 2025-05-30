@@ -29,7 +29,10 @@ def acge_embedding(text, dimension=1024, digit=8):
 
     completion = requests.post(url=url, headers=headers, json=json_text)
     completion.raise_for_status()
-    return completion.json()["result"]["embedding"][0]
+    resp = completion.json()
+    if resp["code"] != 200:
+        raise Exception(resp["message"])
+    return resp["result"]["embedding"][0]
 
 
 acg_lru_cache = LRUCacheDict(max_size=5000, expiration=60 * 60)
@@ -54,7 +57,10 @@ def acge_embedding_multi(text_list, dimension=1024, digit=8, headers=None, url=N
                                headers=headers or None,
                                json=json_text)
     completion.raise_for_status()
-    return completion.json()["result"]["embedding"]
+    resp = completion.json()
+    if resp["code"] != 200:
+        raise Exception(resp["message"])
+    return resp["result"]["embedding"]
 
 
 acg_embedding_multi_batch_with_cache = BatchCacheManager(acge_embedding_multi, cache=acg_lru_cache, batch_size=16, cache_key_suffix="acge_embedding", thread_pool=global_thread_pool)

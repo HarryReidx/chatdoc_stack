@@ -169,7 +169,7 @@ export class GlobalChatService {
             isSecondMsg = false;
           }
         };
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
           let chunkSelection = '';
           let chunkBytes = iconv.encode('', 'utf-8');
 
@@ -177,6 +177,9 @@ export class GlobalChatService {
             if (isJSON && !data) {
               try {
                 const res = JSON.parse(chunkString);
+                if (res.code != 200) {
+                  throw new BadRequestException(res.data.err);
+                }
                 data = res?.data || res;
                 const chunk = {
                   code: 200,
@@ -187,6 +190,7 @@ export class GlobalChatService {
                 countTime();
               } catch (error) {
                 Logger.error('chat response parse error');
+                reject(error);
               }
             }
           }
@@ -270,7 +274,10 @@ export class GlobalChatService {
           streamRes.pipe(response);
         });
       } else {
-        const result = await backendRequest.post(inferUrl, params);
+        const result = await backendRequest.post(inferUrl, params) as { code: number; data: any; msg?: string };
+        if (result.code != 200) {
+          throw new BadRequestException(result.data.err);
+        }
         data = result.data;
       }
       if (data) {

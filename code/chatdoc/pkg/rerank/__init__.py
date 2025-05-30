@@ -29,7 +29,10 @@ def rerank_api(pairs, headers=None, url='http://xxxx/rerank', if_softmax=0):
                                headers=headers or None,
                                json=json_text)
     completion.raise_for_status()
-    return completion.json()["rerank_score"]
+    resp = completion.json()
+    if resp["code"] != 200:
+        raise Exception(resp["message"])
+    return resp["rerank_score"]
 
 
 def rerank_api_by_cache(pairs, headers=None, url='http://xxxx/rerank', if_softmax=0):
