@@ -92,7 +92,7 @@ cd chatdoc_stack
 ### 步骤 3: 启动服务
 
 1. **设置 Elasticsearch 路径权限：**
-   - 运行以下命令以确保 Elasticsearch 的路径权限正确：
+   - 运行以下命令以确保 Elasticsearch 启动不报错：
     ```
     sudo sysctl -w vm.max_map_count=262144
     ```
@@ -118,6 +118,10 @@ cd chatdoc_stack
     ```
     docker logs -f <container_name>
     ```
+
+### 步骤 5: 修改其他配置
+
+直接修改 docker-compose.yml 中的对应配置，然后运行命令 compose/start.sh 即可
 
 ## 注意事项
 - 除 `question-analysis`镜像外，您可以使用代码仓库中各模块的 `Dockerfile` 文件自行构建镜像。
