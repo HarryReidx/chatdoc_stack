@@ -8,13 +8,13 @@
 
 ## 项目简介
 ### 💡chatdoc是什么？
-chatdoc是一款基于[TextIn ParseX](https://www.textin.com/market/detail/pdf_to_markdown)解析服务构建的开源RAG(Retrieval-Augmented-Generation)引擎。支持解析多种文件格式，为企业和个人轻松打造知识库，通过结合知识检索与大语言模型(LLM)技术，提供可靠的知识问答以及答案溯源功能。
+chatdoc是一款基于[TextIn xParse](https://www.textin.com/market/detail/pdf_to_markdown)解析服务构建的开源RAG(Retrieval-Augmented-Generation)引擎。支持解析多种文件格式，为企业和个人轻松打造知识库，通过结合知识检索与大语言模型(LLM)技术，提供可靠的知识问答以及答案溯源功能。
 
 ### 👉产品体验
 请登陆网址(https://www.textin.com/product/textin_intfinq)
 
 ### ⭐️主要功能
-- 基于[TextIn ParseX](https://www.textin.com/market/detail/pdf_to_markdown),提供通用文档解析服务，一个接口，支持PDF/Word(doc/docx)、常见图片(jpg/png/webp/tiff)、HTML等多种文件格式。一次请求，即可获取文字、表格、标题层级、公式、手写字符、图片信息
+- 基于[TextIn xParse](https://www.textin.com/market/detail/pdf_to_markdown),提供通用文档解析服务，一个接口，支持PDF/Word(doc/docx)、常见图片(jpg/png/webp/tiff)、HTML等多种文件格式。一次请求，即可获取文字、表格、标题层级、公式、手写字符、图片信息
 - 支持单文档、多文档、知识库全局问答
 - 支持前端高亮展示检索原文
 
