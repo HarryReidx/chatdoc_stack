@@ -15,7 +15,7 @@ rerank_lru_cache = LRUCacheDict(max_size=20000, expiration=60 * 60)
 
 
 @retry_exponential_backoff()
-def rerank_api(pairs, headers=None, url='http://xxxx/rerank', if_softmax=0):
+def rerank_api(pairs, headers=None, url='http://xxxx11/rerank', if_softmax=0):
     """
     重排序API - 支持本地和TEXTIN两种方式
     """
@@ -47,7 +47,7 @@ def rerank_api(pairs, headers=None, url='http://xxxx/rerank', if_softmax=0):
         return resp["rerank_score"]
 
 
-def rerank_api_by_cache(pairs, headers=None, url='http://xxxx/rerank', if_softmax=0):
+def rerank_api_by_cache(pairs, headers=None, url='http://xxxx11/rerank', if_softmax=0):
     text1_list, text2_list = pairs[0], pairs[1]
 
     result = []

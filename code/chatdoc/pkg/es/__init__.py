@@ -230,6 +230,9 @@ class ES:
         try:
             st = time.time()
             body_str = json.dumps(search_body, ensure_ascii=False)
+            resp_json = None
+            last_error = None
+
             for host in [self.default_host] + self.hosts:
                 url = f"{host}/{index}/_search"
                 if self.username:
@@ -238,13 +241,18 @@ class ES:
                     resp = requests.get(url, json=search_body, verify=False)
 
                 if resp.status_code == 200:
-                    resp = resp.json()
+                    resp_json = resp.json()
                     self.default_host = host
                     break
                 else:
+                    last_error = resp.text
                     print(f"search error, search_body: {search_body},resp: {resp.text}")
 
-            hits = resp["hits"]["hits"]
+            # 检查是否成功获取到响应
+            if resp_json is None:
+                raise Exception(f"All ES hosts failed to respond. Last error: {last_error}")
+
+            hits = resp_json["hits"]["hits"]
             et = time.time()
 
             logger.info(f"searching ES: {index}, duration: {(et-st) * 1000:.1f}ms")

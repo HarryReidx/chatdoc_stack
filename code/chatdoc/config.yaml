@@ -22,19 +22,19 @@ threadpool:
   doc_process_queue_size: 60
   global_worker: 80 # embedding_concurrency
 proxy:
-  url: http://xxxx
+  url: http://chatdoc-proxy:8000
 vector:
   # 选择向量数据库 zilliz / tencent / es
   model: es
 zilliz:
   uri: https://xxx.tc-ap-shanghai.vectordb.zilliz.com.cn:443
-  token: xxxx
+  token: xxxx115245
   collection: test_rag_1024
   p_collection: test_rag_1024_p
   batch_size: 300
   concurrency: 12
 tencent:
-  uri: http://tvdb.xxxx
+  uri: http://tvdb.xxxx113434
   username: root
   key: xxx
   database: db-test
@@ -44,7 +44,7 @@ tencent:
   concurrency: 30
 # textin配置已注释，使用本地服务替代
 textin:
-#   app_id: 'xxxx'
+#   app_id: 'xxxx11'
 #   app_secret: 'xxxxx'
 #   embedding_url: 'https://api.textin.com/ai/service/v1/acge_embedding'
 #   rerank_url: 'https://api.textin.com/ai/service/v1/rerank'
@@ -78,8 +78,8 @@ performance:
   max_batch_size: 8
   timeout: 30
 parse:
-  doc_parse_url: 'xxxx'
-  catalog_url: 'xxxx'
+  doc_parse_url: 'http://chatdoc-proxy:8000'
+  catalog_url: 'xxxx1551'
   parse_concurrency: '10'
   engine: 'megaparse' # megaparse / pdf2md / doc_parser
 retrieve:
@@ -102,18 +102,18 @@ location:
   base_catalog_path: '{BASE_DIR}/parse/catalog/catalog-backend-%s.json'
   base_frontend_catalog_path: '{BASE_DIR}/parse/catalog/catalog-%s.json'
 storage:
-  upload_address: 'xxxx'
-  download_address: 'xxxx'
+  upload_address: 'xxx44'
+  download_address: 'xxxx1155'
 infer:
   rough_rank_score: 0.9 # 检索粗排的top-p
   re_rank_score: 0.9 # 答案洗排的top-p
-  question_keyword_url: 'http://xxxx'
+  question_keyword_url: 'http://query-analysis:30006/query_analysis'
   openkie_url: 'xxxxx'
 backend:
-  node_url: 'http://xxxxx'
-  parse_status: 'http://xxxx'
+  node_url: 'http://chatdoc-proxy:3000'
+  parse_status: 'http://127.0.0.1:3000/api/v1/document/callback'
 jaeger:
-  collector_url: 'xxxxx'
+  collector_url: '补充jaeger地址'
   service_name: 'chatdoc'
   agent_host_name: 'localhost'
   exporter: 'none' # jaeger | console | none
@@ -121,10 +121,10 @@ llm:
   # 选择模型: gpt|tyqw|tyqwapi|chatglm|tianji|baichuan|kimichat|deepseek
   model: tyqwapi
 gpt:
-  proxy: 'xxxxxx'
+  proxy: '补充密钥'
   model: 'gpt-35-turbo-16k'
 tyqw:
-  url: 'xxxxx'
+  url: '补充密钥'
   model: 'qwen2-57b-a14b-instruct'
 tyqwapi:
   url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'
@@ -133,25 +133,25 @@ tyqwapi:
 deepseek:
   url: 'https://api.deepseek.com/chat/completions'
   model: 'deepseek-chat'
-  api_key: sk-xxxxx
+  api_key: '补充密钥'
 tianji:
-  url: 'http://chat7b.xxxx/generate'
+  url: 'http://chat7b.xxxx11/generate'
 baichuan:
   url: 'https://api.baichuan-ai.com/v1/chat/completions'
   model: 'Baichuan3-Turbo-128k'
-  api_key: 'sk-xxxxx'
+  api_key: '补充密钥'
 kimichat:
   url: 'https://api.moonshot.cn/v1/chat/completions'
   model: 'moonshot-v1-32k'
-  api_key: 'sk-xxxxx'
+  api_key: '补充密钥'
 chatglm:
   url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
   model: 'glm-4'
   # 个人账号，请勿乱用
-  api_key: 'xxxx'
+  api_key: '补充密钥'
 compliance:
   # 测试环境：
-  text_url: 'http://xxxxxx/data_censor/v1/text_censor'
+  text_url: 'http://text_censorxxx/data_censor/v1/text_censor'
   timeout: 60
   # yidun | shumei
   censors: shumei

@@ -225,6 +225,7 @@ services:
       - BACKEND_URL=http://backend:3000
       - CUSTOM_PARSER_URL=http://custom-parser:8080
       - QUERY_ANALYSIS_URL=http://query-analysis:30006
+      - PROXY_URL=http://chatdoc-proxy:8000
     depends_on:
       mysql:
         condition: service_healthy

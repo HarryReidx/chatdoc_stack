@@ -167,6 +167,9 @@ class ES:
     def search(self, index, search_body):
         try:
             st = time.time()
+            resp_json = None
+            last_error = None
+
             for host in [self.default_host] + self.hosts:
                 url = f"{host}/{index}/_search"
                 if self.username:
@@ -175,13 +178,20 @@ class ES:
                     resp = requests.get(url, json=search_body, verify=False)
 
                 if resp.status_code == 200:
+                    resp_json = resp.json()
                     self.default_host = host
                     break
+                else:
+                    last_error = resp.text
+
+            # 检查是否成功获取到响应
+            if resp_json is None:
+                raise Exception(f"All ES hosts failed to respond. Last error: {last_error}")
 
             et = time.time()
             if et - st > 0.5:
                 logger.warning(f"ES search too slow: {et - st}s, index: {index}, search_body: {json.dumps(search_body, ensure_ascii=False)}")
-            return resp.json()
+            return resp_json
         except Exception as e:
             logger.error(f"ES Error: search_body: {json.dumps(search_body, ensure_ascii=False)}")
             raise e
@@ -189,6 +199,9 @@ class ES:
     def search_with_hits(self, index, search_body):
         try:
             st = time.time()
+            resp_json = None
+            last_error = None
+
             for host in [self.default_host] + self.hosts:
                 url = f"{host}/{index}/_search"
                 if self.username:
@@ -197,13 +210,20 @@ class ES:
                     resp = requests.get(url, json=search_body, verify=False)
 
                 if resp.status_code == 200:
+                    resp_json = resp.json()
                     self.default_host = host
                     break
+                else:
+                    last_error = resp.text
+
+            # 检查是否成功获取到响应
+            if resp_json is None:
+                raise Exception(f"All ES hosts failed to respond. Last error: {last_error}")
 
             et = time.time()
             if et - st > 0.5:
                 logger.warning(f"ES search too slow: {et - st}s, index: {index}, search_body: {json.dumps(search_body, ensure_ascii=False)}")
-            return resp.json()["hits"]["hits"]
+            return resp_json["hits"]["hits"]
 
         except Exception as e:
             logger.error(f"ES Error: search_body: {json.dumps(search_body, ensure_ascii=False)}")

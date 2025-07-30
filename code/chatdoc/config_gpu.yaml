@@ -43,8 +43,8 @@ cache:
 
 # 解析引擎配置
 parse:
-  doc_parse_url: 'xxxx'
-  catalog_url: 'xxxx'
+  doc_parse_url: 'xxxx11'
+  catalog_url: 'xxxx11'
   parse_concurrency: '20'  # GPU环境可以更高并发
   engine: 'megaparse'
 

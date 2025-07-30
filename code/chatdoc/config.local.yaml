@@ -33,14 +33,14 @@ vector:
 
 zilliz:
   uri: https://xxx.tc-ap-shanghai.vectordb.zilliz.com.cn:443
-  token: xxxx
+  token: xxxx11
   collection: test_rag_1024
   p_collection: test_rag_1024_p
   batch_size: 300
   concurrency: 12
 
 tencent:
-  uri: http://tvdb.xxxx
+  uri: http://tvdb.xxxx11
   username: root
   key: xxx
   database: db-test
@@ -53,7 +53,7 @@ textin:
 
 parse:
   doc_parse_url: 'http://127.0.0.1:8080/api/v1/pdf_to_markdown'
-  catalog_url: 'xxxx'
+  catalog_url: 'xxxx11'
   parse_concurrency: '10'
   engine: 'megaparse' # doc_parser / pdf2md / megaparse
 
@@ -112,7 +112,7 @@ deepseek:
   api_key: sk-xxxxx
 
 tianji:
-  url: 'http://chat7b.xxxx/generate'
+  url: 'http://chat7b.xxxx11/generate'
 
 baichuan:
   url: 'https://api.baichuan-ai.com/v1/chat/completions'
@@ -127,7 +127,7 @@ kimichat:
 chatglm:
   url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
   model: 'glm-4'
-  api_key: 'xxxx'
+  api_key: 'xxxx11'
 
 compliance:
   text_url: 'http://xxxxxx/data_censor/v1/text_censor'

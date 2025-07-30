@@ -15,7 +15,7 @@ import uuid
 
 class TextCompliance(object):
     """
-    参考 https://xxxx/pages/viewpage.action?pageId=142868825
+    参考 https://xxxx11/pages/viewpage.action?pageId=142868825
     """
 
     def __init__(self):
