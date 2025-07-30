@@ -91,21 +91,37 @@ def retry_exponential_backoff(max_retries=3, base_delay=1):
 
 @retry_exponential_backoff()
 def embedding_multi(origin_text, headers=None, url=None):
-    json_text = {
-        "input": origin_text
-    }
+    """
+    批量嵌入函数 - 支持本地和TEXTIN两种方式
+    """
+    # 检查是否配置了本地服务
+    if config.get("local_services", {}).get("embedding"):
+        # 使用兼容性嵌入服务
+        from pkg.compatibility_adapter import get_compatibility_embedding_service
+        service = get_compatibility_embedding_service()
+        if isinstance(origin_text, str):
+            return service.encode_single(origin_text)
+        elif isinstance(origin_text, list):
+            return service.encode_batch(origin_text)
+        else:
+            raise ValueError(f"不支持的输入类型: {type(origin_text)}")
+    else:
+        # 使用原TEXTIN服务
+        json_text = {
+            "input": origin_text
+        }
 
-    headers = headers or {}
-    headers.update({
-        "x-ti-app-id": config["textin"]["app_id"],
-        "x-ti-secret-code": config["textin"]["app_secret"],
-    })
+        headers = headers or {}
+        headers.update({
+            "x-ti-app-id": config["textin"]["app_id"],
+            "x-ti-secret-code": config["textin"]["app_secret"],
+        })
 
-    completion = requests.post(url=url or config["textin"]["embedding_url"],
-                               headers=headers or None,
-                               json=json_text)
-    completion.raise_for_status()
-    return completion.json()["result"]["embedding"]
+        completion = requests.post(url=url or config["textin"]["embedding_url"],
+                                   headers=headers or None,
+                                   json=json_text)
+        completion.raise_for_status()
+        return completion.json()["result"]["embedding"]
 
 
 def log_msg(func):

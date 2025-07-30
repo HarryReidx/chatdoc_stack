@@ -3,6 +3,7 @@
 ## 目录
 - [项目简介](#项目简介)
 - [快速开始](#安装)
+- [TextIn替换方案](#textin替换方案)
 - [贡献指南](#贡献指南)
 - [许可证](#许可证)
 
@@ -122,6 +123,132 @@ cd chatdoc_stack
 ### 步骤 5: 修改其他配置
 
 直接修改 docker-compose.yml 中的对应配置，然后运行命令 compose/start.sh 即可
+
+## TextIn替换方案
+
+本项目提供了一个完整的TextIn服务替换方案。TextIn服务主要提供三个功能：文档解析（PDF2MD）、文本嵌入（acge_embedding）和重排序（rerank）。本替换方案通过扩展`custom-parser`服务，集成多种解析引擎和API，实现了对TextIn服务的全面替代。
+
+### 主要组件
+
+#### 1. 多引擎文档解析服务
+
+扩展了`custom-parser`服务，集成了多种文档解析引擎：
+
+- **MegaParse**: 主要解析引擎，提供高质量文档解析
+- **LlamaParse**: 备选解析引擎，需要LlamaCloud API密钥
+- **通义千问**: 备选解析引擎，需要通义千问API密钥
+- **Mock**: 模拟解析器，用于测试和开发
+
+支持多种解析策略（Auto、Fast、Hi-Res）和文件类型（PDF、DOCX、DOC、TXT、MD）。
+
+**API兼容性：**
+
+服务完全兼容TextIn PDF2MD API，支持两种方式上传文件：
+
+1. 标准方式：通过multipart/form-data上传文件
+2. 兼容TextIn API方式：直接将文件内容作为请求体发送
+
+这使得ChatDoc服务可以无缝集成，无需修改代码。
+
+#### 2. 文本嵌入服务
+
+提供两种文本嵌入方案：
+
+- **Sentence Transformers**: 开源的文本嵌入模型，如'all-MiniLM-L6-v2'
+- **通义千问API**: 通过通义千问API提供的文本嵌入功能
+
+#### 3. 重排序服务
+
+提供两种重排序方案：
+
+- **Cohere API**: 使用Cohere提供的免费重排序API
+- **本地重排序模型**: 部署本地重排序模型
+
+### 安装与配置
+
+#### 安装依赖
+
+##### Windows
+
+```powershell
+# 运行PowerShell安装脚本
+.\setup_parser.ps1
+```
+
+##### Linux/Mac
+
+```bash
+# 运行Bash安装脚本
+chmod +x setup_parser.sh
+./setup_parser.sh
+```
+
+#### 配置环境变量
+
+在`custom-parser/.env`文件中配置以下选项：
+
+```
+DEFAULT_PARSER=megaparse  # 默认解析器类型
+MEGAPARSE_ENABLED=true    # 是否启用MegaParse
+LLAMA_CLOUD_API_KEY=your_key  # LlamaCloud API密钥
+QWEN_API_KEY=your_key     # 通义千问API密钥
+PORT=8080                 # 服务端口
+TEMP_DIR=./temp           # 临时文件目录
+LOG_LEVEL=info            # 日志级别
+```
+
+#### 启动服务
+
+##### 直接启动
+
+```bash
+cd custom-parser
+uvicorn main:app --reload --host 0.0.0.0 --port 8080
+```
+
+##### 使用Docker
+
+```bash
+docker-compose up -d custom-parser
+```
+
+#### 测试
+
+##### 测试解析服务
+
+```bash
+# 测试所有解析器
+python test_multi_parser.py path/to/document.pdf --all
+
+# 测试特定解析器
+python test_multi_parser.py path/to/document.pdf --parser megaparse
+```
+
+##### 测试与ChatDoc集成
+
+```bash
+python test_integration.py path/to/document.pdf
+```
+
+#### 与ChatDoc集成
+
+1. 修改ChatDoc配置，将TextIn相关API指向新服务：
+
+```yaml
+# 在docker-compose.yml中修改环境变量
+services:
+  chatdoc:
+    environment:
+      - PDF2MD_API_URL=http://custom-parser:8080/api/v1/pdf_to_markdown
+      - EMBEDDING_API_URL=http://custom-parser:8080/api/v1/embedding
+      - RERANK_API_URL=http://custom-parser:8080/api/v1/rerank
+```
+
+2. 重启ChatDoc服务：
+
+```bash
+docker-compose restart chatdoc
+```
 
 ## 注意事项
 - 除 `question-analysis`镜像外，您可以使用代码仓库中各模块的 `Dockerfile` 文件自行构建镜像。

@@ -1,231 +1,264 @@
+version: '3.8'
+
 services:
+  # MySQL数据库
   mysql:
     image: mysql:5.7.44
+    container_name: compose-mysql-1
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: Pwd_250309
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: gpt_qa
+      MYSQL_USER: chatdoc
+      MYSQL_PASSWORD: chatdoc123456
     ports:
-      - 3307:3306
+      - "3307:3306"
     volumes:
-      - ../data/mysql/:/var/lib/mysql/
+      - mysql_data:/var/lib/mysql
+      - ./mysql/conf:/etc/mysql/conf.d
+      - ../initialize/mysql:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 30s
-      timeout: 10s
+      timeout: 20s
       retries: 10
-    networks:
-      - chatdoc
 
+  # Redis缓存
   redis:
     image: redis:7.0.0
     restart: always
-    command: redis-server --requirepass Pwd_250309
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    networks:
-      - chatdoc
+      timeout: 3s
+      retries: 5
+
+  # Elasticsearch集群
   es01:
     image: elasticsearch:8.12.0
     container_name: es01
-    ports:
-      - 9200:9200
+    restart: always
     environment:
       - node.name=es01
-      - cluster.name=chatdoc-docker-cluster
-      - cluster.initial_master_nodes=es01,es02,es03
       - discovery.seed_hosts=es02,es03
-      - ELASTIC_PASSWORD=Pwd_250309
-      - bootstrap.memory_lock=false
+      - cluster.initial_master_nodes=es01,es02,es03
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
       - xpack.security.enabled=false
-    mem_limit: 2g
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - ../data/es/01:/usr/share/elasticsearch/data
-    networks:
-      - chatdoc
+      - esdata01:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
-        ]
-      interval: 10s
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       timeout: 10s
-      retries: 120
+      retries: 5
 
   es02:
-    depends_on:
-      - es01
-    container_name: es02
     image: elasticsearch:8.12.0
+    container_name: es02
+    restart: always
     environment:
       - node.name=es02
-      - cluster.name=chatdoc-docker-cluster
-      - cluster.initial_master_nodes=es01,es02,es03
       - discovery.seed_hosts=es01,es03
-      - ELASTIC_PASSWORD=Pwd_250309
-      - bootstrap.memory_lock=false
+      - cluster.initial_master_nodes=es01,es02,es03
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
       - xpack.security.enabled=false
-    mem_limit: 2g
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - ../data/es/02:/usr/share/elasticsearch/data
-    networks:
-      - chatdoc
+      - esdata02:/usr/share/elasticsearch/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
-        ]
-      interval: 10s
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       timeout: 10s
-      retries: 120
+      retries: 5
 
   es03:
-    depends_on:
-      - es02
-    container_name: es03
     image: elasticsearch:8.12.0
+    container_name: es03
+    restart: always
     environment:
       - node.name=es03
-      - cluster.name=chatdoc-docker-cluster
-      - cluster.initial_master_nodes=es01,es02,es03
       - discovery.seed_hosts=es01,es02
-      - ELASTIC_PASSWORD=Pwd_250309
-      - bootstrap.memory_lock=false
+      - cluster.initial_master_nodes=es01,es02,es03
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
       - xpack.security.enabled=false
-    mem_limit: 2g
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
-      - ../data/es/03:/usr/share/elasticsearch/data
-    networks:
-      - chatdoc
+      - esdata03:/usr/share/elasticsearch/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
-        ]
-      interval: 10s
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       timeout: 10s
-      retries: 120
+      retries: 5
 
-  chatdoc-proxy:
-    image: crpi-fzu683ul2d9e6wu3.cn-hangzhou.personal.cr.aliyuncs.com/intsig-chatdoc/chatdoc-proxy:open-v1.0.0 
-    container_name: chatdoc-proxy
+  # 自定义文档解析服务
+  custom-parser:
+    build: 
+      context: ../custom-parser
+      dockerfile: Dockerfile
+    image: compose-custom-parser
+    container_name: custom-parser
     restart: always
+    ports:
+      - "8080:8080"
     environment:
-      - ES_HOSTS=http://es01:9200|http://es02:9200|http://es03:9200
-      - ES_USERNAME=elastic
-      - ES_PASSWORD=Pwd_250309
-      - DATA_PATH=/data
-      - BASE_PATH=/app/config.yaml
-      - LOCATION_BASE_FILE_PATH=/data/file/
-      - ANALYST_QUERY_ANALYSIS_URL=http://query-analysis:30006/query_analysis
-      - LLM_MODEL=tyqwapi
-      - TYQWAPI_MODEL=deepseek-v3
-      - TYQWAPI_API_KEY=sk-998xxxx
-      - TEXTIN_APP_ID=xxxxx
-      - TEXTIN_APP_SECRET=xxxxx
+      - PORT=8080
+      - LOG_LEVEL=INFO
+      - DEFAULT_PARSER=megaparse
+      - MEGAPARSE_ENABLED=true
     volumes:
-      - ../data/chatdoc:/data
-    networks:
-      - chatdoc
+      - ../MegaParse/libs/megaparse:/MegaParse/libs/megaparse
+      - ../MegaParse/libs/megaparse_sdk:/MegaParse/libs/megaparse_sdk
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/docs"]
+      timeout: 30s
+      retries: 5
 
-  chatdoc:
-    image: registry.cn-hangzhou.aliyuncs.com/intsig_chatdoc/chatdoc:open-v1.0.3
-    container_name: chatdoc
+  # 查询分析服务
+  query-analysis:
+    image: crpi-fzu683ul2d9e6wu3.cn-hangzhou.personal.cr.aliyuncs.com/intsig-chatdoc/query-analysis:open-v1.0.0
+    container_name: query-analysis
     restart: always
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=7
-      - REDIS_PASSWORD=Pwd_250309
-      - ES_HOSTS=http://es01:9200|http://es02:9200|http://es03:9200
-      - ES_USERNAME=elastic
-      - ES_PASSWORD=Pwd_250309
-      - DATA_PATH=/data
-      - BASE_PATH=/app/config.yaml
-      - LOCATION_BASE_FILE_PATH=/data/file/
-      - PROXY_URL=http://chatdoc-proxy:8000
-      - BACKEND_PARSE_STATUS=http://backend:3000/api/v1/document/callback
-      - INFER_QUESTION_KEYWORD_URL=http://query-analysis:30006/query_analysis
-      - LLM_MODEL=tyqwapi
-      - TYQWAPI_MODEL=deepseek-v3
-      - TYQWAPI_API_KEY=sk-xxx
-      - PDF2MD_URL=https://api.textin.com/ai/service/v1/pdf_to_markdown
-      - TEXTIN_APP_ID=xxxxx
-      - TEXTIN_APP_SECRET=xxxxx
-    volumes:
-      - ../data/chatdoc:/data
-    networks:
-      - chatdoc
-      
-  # 后端
+    ports:
+      - "30006:30006"
+
+  # 后端服务
   backend:
-    image: registry.cn-hangzhou.aliyuncs.com/intsig_chatdoc/backend:open-v1.0.3
+    build:
+      context: ../code/backend
+      dockerfile: Dockerfile
+    image: doc-be:1.0
     container_name: backend
     restart: always
-    depends_on:
-      mysql:
-        condition: service_healthy
+    ports:
+      - "48092:3000"
+    volumes:
+      - ../code/backend:/app
+      - /app/node_modules
+      - ./logs:/var/log/backend  # 添加日志挂载卷
     environment:
+      - NODE_ENV=development
       - PROJECT_NAME=backend
       - MYSQL_HOST=mysql
       - MYSQL_PORT=3306
       - MYSQL_USER=root
       - MYSQL_DATABASE=gpt_qa
-      - MYSQL_PASSWORD=Pwd_250309
+      - MYSQL_PASSWORD=root123456
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=Pwd_250309
+#      - REDIS_PASSWORD=Pwd_250309
       - UPLOAD_ADDRESS=http://chatdoc-proxy:8000/upload/
       - DOWNLOAD_ADDRESS=http://chatdoc-proxy:8000/download/
       - BACKEND_URL=http://chatdoc:5000
       - BACKEND_NODE_URL=http://backend:3000
       - CHATDOC_PROXY_URL=http://chatdoc-proxy:8000
-      - TEXTIN_DOWNLOAD_URL=https://api.textin.com/ocr_image/download
-      - MYSQL_TABLE_PREFIX=t_
-      - TEXTIN_APP_ID=xxxxx
-      - TEXTIN_APP_SECRET=xxxxx
-    ports:
-      - "0.0.0.0:48092:3000"
-    networks:
-      - chatdoc
+      - FRONT_END_URL=http://localhost:3001,http://localhost:48091,http://host.docker.internal:48091,http://frontend:3000
+      - LOG_LEVEL=debug  # 启用调试日志
+      - DEBUG_MODE=true  # 启用调试模式
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["yarn", "start:debug"]  # 使用调试模式启动
 
+  # 前端服务
   frontend:
-    image: registry.cn-hangzhou.aliyuncs.com/intsig_chatdoc/frontend:open-v1.0.1
+    build:
+      context: ../code/frontend
+      dockerfile: Dockerfile
+      target: production
+    image: doc-fe:1.0
     container_name: frontend
     restart: always
-    environment:
-      # KB_API这个应设置为后端服务暴露的地址，域名或者可访问到 http://ip:port，例如http://chatdoc-backend-gateway.chatdoc.com
-      KB_API: http://127.0.0.1:48092
-      PORT: 3001
     ports:
-      - "0.0.0.0:48091:3001"
-    networks:
-      - chatdoc
+      - "48091:3000"
+    environment:
+      - KB_API=http://host.docker.internal:48092
+      - NODE_ENV=production
 
-  query-analysis:
-    image: crpi-fzu683ul2d9e6wu3.cn-hangzhou.personal.cr.aliyuncs.com/intsig-chatdoc/query-analysis:open-v1.0.0
-    container_name: query-analysis
-    restart: always
-    networks:
-      - chatdoc
-networks:
+  # 文档问答服务
   chatdoc:
-    driver: bridge
+    build:
+      context: ../code/chatdoc
+      dockerfile: Dockerfile
+    image: doc:1.0
+    container_name: chatdoc
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - chatdoc_data:/app/data
+      - ../MegaParse:/MegaParse
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - ES_HOSTS=http://es01:9200|http://es02:9200|http://es03:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=Pwd_250309
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root123456
+      - MYSQL_DB=gpt_qa
+      - BACKEND_URL=http://backend:3000
+      - CUSTOM_PARSER_URL=http://custom-parser:8080
+      - QUERY_ANALYSIS_URL=http://query-analysis:30006
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      es01:
+        condition: service_healthy
+      es02:
+        condition: service_healthy
+      es03:
+        condition: service_healthy
+
+  # 文档问答代理服务
+  chatdoc-proxy:
+    build: 
+      context: ../code/chatdoc-proxy
+      dockerfile: Dockerfile
+    image: doc-proxy:1.0
+    container_name: chatdoc-proxy
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - chatdoc_data:/app/data
+    environment:
+      - BACKEND_URL=http://chatdoc:5000
+    depends_on:
+      - chatdoc
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  mysql_data:
+  redis_data:
+  esdata01:
+  esdata02:
+  esdata03:
+  chatdoc_data:

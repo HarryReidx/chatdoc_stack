@@ -1,0 +1,69 @@
+# GPU专用配置 - Linux TITAN*2环境
+# 此配置专门为双TITAN GPU环境优化
+
+# 本地服务配置 - 替代TEXTIN
+local_services:
+  embedding:
+    model: "bge-large-zh-v1.5"  # 大模型，适合GPU
+    device: "cuda"
+    batch_size: 32  # GPU可以处理更大批次
+    max_seq_length: 512
+    normalize_embeddings: true
+  rerank:
+    model: "bge-reranker-large"  # 大模型，适合GPU
+    device: "cuda"
+    batch_size: 16
+    max_length: 512
+  pdf_parser:
+    engine: "megaparse"  # 使用megaparse
+  storage:
+    type: "local"
+    base_path: "./data/images"
+
+# GPU性能优化设置
+performance:
+  gpu_memory_fraction: 0.8  # 使用80%的GPU内存
+  mixed_precision: true  # 启用混合精度
+  dataloader_num_workers: 4
+  pin_memory: true
+  max_batch_size: 64
+  timeout: 60
+
+# 多GPU设置（如果使用双TITAN）
+multi_gpu:
+  enabled: true
+  strategy: "data_parallel"  # 数据并行
+  devices: [0, 1]  # 使用两块GPU
+  
+# 模型缓存设置
+cache:
+  model_cache_dir: "./models"
+  enable_disk_cache: true
+  cache_size_gb: 10
+
+# 解析引擎配置
+parse:
+  doc_parse_url: 'xxxx'
+  catalog_url: 'xxxx'
+  parse_concurrency: '20'  # GPU环境可以更高并发
+  engine: 'megaparse'
+
+# 检索配置
+retrieve:
+  fixed_table_keyword_threshold: 0.65
+  retrieval_top_n: 20  # GPU可以处理更多结果
+  retrieval_max_length: 50000  # 更长的上下文
+
+# 向量数据库配置（GPU加速）
+vector_db:
+  type: "faiss"
+  index_type: "IVF"
+  nlist: 1024
+  use_gpu: true
+  gpu_ids: [0, 1]
+
+# 日志配置
+logging:
+  level: "INFO"
+  gpu_monitoring: true
+  performance_metrics: true

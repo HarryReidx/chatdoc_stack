@@ -1,7 +1,7 @@
 es:
-  hosts: 'http://xxxx'
+  hosts: 'http://localhost:9200'  # 本地ES服务，如果没有ES可以先注释掉
   username: 'elastic'
-  password: 'xxxx'
+  password: 'changeme'  # 默认密码，根据实际情况修改
   index_p_doc_item: 'v5_p_doc_item'
   index_p_doc_table: 'v5_p_doc_table'
   index_p_doc_fragment: 'v5_p_doc_fragment'
@@ -12,11 +12,11 @@ es:
   index_doc_fragment: 'v5_doc_fragment'
   index_file: 'v5_file'
 redis:
-  host: "xxxx"
+  host: "redis"
   port: 6379
   db: 7
   username: ''
-  password: 'xxxx'
+  password: ''
 threadpool:
   doc_process_worker: 3
   doc_process_queue_size: 60
@@ -42,16 +42,46 @@ tencent:
   p_collection: t_p_rag_1024
   batch_size: 100
   concurrency: 30
+# textin配置已注释，使用本地服务替代
 textin:
-  app_id: 'xxxx'
-  app_secret: 'xxxxx'
-  embedding_url: 'https://api.textin.com/ai/service/v1/acge_embedding'
-  rerank_url: 'https://api.textin.com/ai/service/v1/rerank'
+#   app_id: 'xxxx'
+#   app_secret: 'xxxxx'
+#   embedding_url: 'https://api.textin.com/ai/service/v1/acge_embedding'
+#   rerank_url: 'https://api.textin.com/ai/service/v1/rerank'
+
+# 本地服务配置 - 替代TEXTIN (兼容性版本)
+local_services:
+  embedding:
+    model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    device: "cpu"
+    batch_size: 4  # 小批次，避免内存问题
+    implementation: "manual"  # 使用手动实现，避免版本问题
+  rerank:
+    model: "simple"  # 使用简单相似度计算
+    device: "cpu"
+    implementation: "manual"
+  pdf_parser:
+    engine: "megaparse"  # 使用MegaParse
+  storage:
+    type: "local"
+    base_path: "./data/images"
+
+# 兼容性设置
+compatibility:
+  use_manual_implementation: true
+  fallback_to_simple: true
+  max_retries: 3
+
+# 性能配置
+performance:
+  cpu_threads: 4
+  max_batch_size: 8
+  timeout: 30
 parse:
   doc_parse_url: 'xxxx'
   catalog_url: 'xxxx'
   parse_concurrency: '10'
-  engine: 'pdf2md' # doc_parser / pdf2md
+  engine: 'megaparse' # megaparse / pdf2md / doc_parser
 retrieve:
   fixed_table_keyword_threshold: 0.65
   # three_table_keyword_threshold: 0.8
@@ -89,7 +119,7 @@ jaeger:
   exporter: 'none' # jaeger | console | none
 llm:
   # 选择模型: gpt|tyqw|tyqwapi|chatglm|tianji|baichuan|kimichat|deepseek
-  model: deepseek
+  model: tyqwapi
 gpt:
   proxy: 'xxxxxx'
   model: 'gpt-35-turbo-16k'
@@ -98,8 +128,8 @@ tyqw:
   model: 'qwen2-57b-a14b-instruct'
 tyqwapi:
   url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'
-  model: qwen-plus-prem
-  api_key: sk-xxxxx
+  model: qwen-plus
+  api_key: sk-250af6dd22034c55ad233b9a15d713a8
 deepseek:
   url: 'https://api.deepseek.com/chat/completions'
   model: 'deepseek-chat'
@@ -126,9 +156,13 @@ compliance:
   # yidun | shumei
   censors: shumei
   warning_text: '抱歉，您的提问内容与本知识库无关，请重新提问，谢谢！'
-pdf2md:
-  url: https://api.textin.com/ai/service/v1/pdf_to_markdown
-  download_url: 'https://api.textin.com/ocr_image/download'
+# pdf2md配置已注释，使用megaparse替代
+# pdf2md:
+#   url: https://api.textin.com/ai/service/v1/pdf_to_markdown
+#   download_url: 'https://api.textin.com/ocr_image/download'
+
+# megaparse配置
+megaparse:
   options_dpi: 144
   options_page_start: 0
   options_page_count: 2000

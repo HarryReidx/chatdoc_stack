@@ -8,17 +8,27 @@ bs4==0.0.1
 certifi==2023.7.22
 charset-normalizer==3.3.1
 click==8.1.7
-dataclasses-json==0.6.1
-elastic-transport==8.13.0
-elasticsearch==8.13.1
+colorama==0.4.6
+dataclasses-json==0.5.14
+elastic-transport==8.4.0
+elasticsearch==8.9.0
 exceptiongroup==1.1.3
-filelock==3.13.1
-Flask==3.0.0
+Flask==2.3.3
+Flask-Cors==4.0.0
 frozenlist==1.4.0
-fsspec==2023.10.0
-greenlet==3.0.1
+greenlet==3.0.0
+h11==0.14.0
+httpcore==0.17.3
+httpx==0.24.1
+idna==3.4
 importlib-metadata==6.8.0
+itsdangerous==2.1.2
+Jinja2==3.1.2
+joblib==1.3.2
+jsonpatch==1.33
 jsonpointer==2.4
+langchain-core==0.1.52
+langsmith==0.1.17
 MarkupSafe==2.1.3
 marshmallow==3.20.1
 mpmath==1.3.0
@@ -52,11 +62,11 @@ pyjwt==2.8.0
 gunicorn
 xlwt
 PyInquirer
-opentelemetry-api==1.23.0
-opentelemetry-sdk==1.23.0
+opentelemetry-api==1.25.0
+opentelemetry-sdk==1.25.0
 opentelemetry-exporter-jaeger==1.21.0
-opentelemetry-instrumentation-flask==0.44b0
-opentelemetry-instrumentation-requests==0.44b0
+opentelemetry-instrumentation-flask==0.46b0
+opentelemetry-instrumentation-requests==0.46b0
 pandas==2.2.1
 fuzzywuzzy==0.18.0
 openpyxl==3.1.2
@@ -70,3 +80,15 @@ lxml==5.2.2
 orjson==3.10.6
 redis==5.0.8
 shapely==2.0.6
+# 添加torch和相关依赖以解决ModuleNotFoundError
+torch==2.0.1
+torchvision==0.15.2
+torchaudio==2.0.2
+# 添加sentence-transformers及其依赖
+sentence-transformers==2.2.2
+transformers==4.30.2
+tokenizers==0.13.3
+huggingface-hub==0.19.4
+# 注释掉megaparse相关依赖，因为它们在当前环境中无法安装
+# megaparse>=0.0.55
+# megaparse-sdk>=0.0.19

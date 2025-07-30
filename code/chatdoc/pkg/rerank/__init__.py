@@ -8,31 +8,43 @@ from pkg.utils import retry_exponential_backoff
 from pkg.config import config
 from pkg.utils.lru_cache import LRUCacheDict
 import requests
+from pkg.rerank.local_rerank import rerank_api as local_rerank_api
+from pkg.compatibility_adapter import get_compatibility_rerank_service
 
 rerank_lru_cache = LRUCacheDict(max_size=20000, expiration=60 * 60)
 
 
 @retry_exponential_backoff()
 def rerank_api(pairs, headers=None, url='http://xxxx/rerank', if_softmax=0):
-    json_text = {
-        "input": pairs,
-        "if_softmax": if_softmax
-    }
+    """
+    重排序API - 支持本地和TEXTIN两种方式
+    """
+    # 检查是否配置了本地服务
+    if config.get("local_services", {}).get("rerank"):
+        # 使用兼容性重排序服务
+        service = get_compatibility_rerank_service()
+        return service.rerank_pairs(pairs, if_softmax)
+    else:
+        # 使用原TEXTIN服务
+        json_text = {
+            "input": pairs,
+            "if_softmax": if_softmax
+        }
 
-    headers = headers or {}
-    headers.update({
-        "x-ti-app-id": config["textin"]["app_id"],
-        "x-ti-secret-code": config["textin"]["app_secret"],
-    })
+        headers = headers or {}
+        headers.update({
+            "x-ti-app-id": config["textin"]["app_id"],
+            "x-ti-secret-code": config["textin"]["app_secret"],
+        })
 
-    completion = requests.post(url=url or config["textin"]["rerank_url"],
-                               headers=headers or None,
-                               json=json_text)
-    completion.raise_for_status()
-    resp = completion.json()
-    if resp["code"] != 200:
-        raise Exception(resp["message"])
-    return resp["rerank_score"]
+        completion = requests.post(url=url or config["textin"]["rerank_url"],
+                                   headers=headers or None,
+                                   json=json_text)
+        completion.raise_for_status()
+        resp = completion.json()
+        if resp["code"] != 200:
+            raise Exception(resp["message"])
+        return resp["rerank_score"]
 
 
 def rerank_api_by_cache(pairs, headers=None, url='http://xxxx/rerank', if_softmax=0):

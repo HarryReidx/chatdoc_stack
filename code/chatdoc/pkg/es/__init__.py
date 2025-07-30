@@ -318,4 +318,16 @@ es_index_default_settings = {
     "number_of_replicas": "1"
 }
 
-global_es = ES()
+# 条件初始化ES，支持跳过ES的模式
+import os
+if os.environ.get('SKIP_ES_INIT') == '1':
+    print("⚠️ 跳过ES初始化（SKIP_ES_INIT=1）")
+    global_es = None
+else:
+    try:
+        global_es = ES()
+        print("✅ ES初始化成功")
+    except Exception as e:
+        print(f"⚠️ ES初始化失败: {e}")
+        print("   如果不需要ES功能，可以设置环境变量 SKIP_ES_INIT=1")
+        global_es = None

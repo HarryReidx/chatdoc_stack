@@ -1,8 +1,7 @@
 '''
-Author: longsion<xianglong_chen@intsig.net>
-Date: 2024-10-08 16:11:24
-LastEditors: longsion
-LastEditTime: 2024-10-08 19:17:02
+整体作用: 
+本代码实现了一个多路召回系统，用于从文档中检索相关表格和段落信息。支持两种召回模式：分析员模式（ANALYST）和个人模式（PERSONAL）。
+根据用户输入的上下文（Context），通过多线程并行执行表格和段落召回，并对召回结果进行过滤，以去除无关或重复内容。最终返回包含召回结果的上下文对象。
 '''
 
 import re
@@ -16,10 +15,14 @@ from pkg.es.es_p_file import PESFileObject
 from pkg.utils.decorators import register_span_func
 from pkg.global_.objects import Context, GlobalQAType
 from pkg.utils.thread_with_return_value import ThreadWithReturnValue
-
+from pkg.utils.logger import logger
 
 def lambda_func(context: Context):
-
+    """
+    功能: 将上下文对象的指定字段序列化为字典
+    参数: context - 上下文对象，包含查询参数和分析结果
+    返回: 包含指定字段的字典
+    """
     return context.model_dump(include=[
         "params",
         "trace_id",
@@ -31,6 +34,11 @@ def lambda_func(context: Context):
 
 
 def retrieve_small_full_by_analyst(context: Context) -> Context:
+    """
+    功能: 分析员模式的全文召回，检索表格和段落
+    参数: context - 上下文对象，包含查询参数和分析结果
+    返回: 更新后的上下文对象，包含召回的表格和段落
+    """
     document_uuids = []
     # 没有选中文件时，进行全局检索，只使用段落召回与表格召回
     _normal_table_retrieve_l = ThreadWithReturnValue(target=retrieve_by_table, args=(context, document_uuids))
@@ -67,8 +75,15 @@ def retrieve_small_full_by_analyst(context: Context) -> Context:
 
 
 def retrieve_small_full_by_personal(context: Context) -> Context:
-    # 如果文件存在
+    """
+    功能: 个人模式的全文召回，检索表格和段落
+    参数: context - 上下文对象，包含查询参数和分析结果
+    返回: 更新后的上下文对象，包含召回的表格和段落
+    """
     document_uuids = []
+    logger.info(">>> 进入retrieve_small_full_by_personal")
+    # 打印context内容
+    logger.info(context)
     # 没有选中文件时，进行全局检索，只使用段落召回与表格召回
     _normal_table_retrieve_l = ThreadWithReturnValue(target=retrieve_by_personal_table, args=(context, document_uuids))
     _normal_table_retrieve_l.start()
@@ -105,6 +120,12 @@ def retrieve_small_full_by_personal(context: Context) -> Context:
 
 @register_span_func(func_name="多路召回Full", span_export_func=lambda context: lambda_func(context))
 def retrieve_small_full(context: Context) -> Context:
+    """
+    功能: 根据QA类型调用不同的召回函数，支持分析员和个人模式
+    参数: context - 上下文对象，包含查询参数和分析结果
+    返回: 更新后的上下文对象，包含召回的表格和段落
+    """
+    logger.info(">>> 进入retrieve_small_full1")
     if context.params.qa_type == GlobalQAType.ANALYST.value:
         context = retrieve_small_full_by_analyst(context)
     elif context.params.qa_type == GlobalQAType.PERSONAL.value:
@@ -119,7 +140,13 @@ def retrieve_small_full(context: Context) -> Context:
 
 
 def retrieve_by_table(context: Context, document_uuids: list[str]) -> list[DocTableModel]:
-    # 表格召回
+    """
+    功能: 从文档中召回表格内容
+    参数: 
+        context - 上下文对象，包含查询参数和分析结果
+        document_uuids - 文档UUID列表
+    返回: 召回的表格内容列表
+    """
     files = [
         file for file in context.locationfiles if isinstance(file, ESFileObject)
     ]
@@ -143,7 +170,13 @@ def retrieve_by_table(context: Context, document_uuids: list[str]) -> list[DocTa
 
 
 def retrieve_by_paragraph(context: Context, document_uuids: list[str]) -> list[DocFragmentModel]:
-    # 段落召回
+    """
+    功能: 从文档中召回段落内容
+    参数: 
+        context - 上下文对象，包含查询参数和分析结果
+        document_uuids - 文档UUID列表
+    返回: 召回的段落内容列表
+    """
     files = [
         file for file in context.locationfiles if isinstance(file, ESFileObject)
     ]
@@ -159,7 +192,13 @@ def retrieve_by_paragraph(context: Context, document_uuids: list[str]) -> list[D
 
 
 def retrieve_by_personal_table(context: Context, document_uuids: list[str]) -> list[PDocTableModel]:
-    # 表格召回
+    """
+    功能: 从个人文档中召回表格内容
+    参数: 
+        context - 上下文对象，包含查询参数和分析结果
+        document_uuids - 文档UUID列表
+    返回: 召回的表格内容列表
+    """
     files = [
         file for file in context.locationfiles if isinstance(file, PESFileObject)
     ]
@@ -185,7 +224,13 @@ def retrieve_by_personal_table(context: Context, document_uuids: list[str]) -> l
 
 
 def retrieve_by_personal_paragraph(context: Context, document_uuids: list[str]) -> list[PDocFragmentModel]:
-    # 段落召回
+    """
+    功能: 从个人文档中召回段落内容
+    参数: 
+        context - 上下文对象，包含查询参数和分析结果
+        document_uuids - 文档UUID列表
+    返回: 召回的段落内容列表
+    """
     files = [
         file for file in context.locationfiles if isinstance(file, PESFileObject)
     ]
@@ -203,21 +248,26 @@ def retrieve_by_personal_paragraph(context: Context, document_uuids: list[str]) 
 
 def get_ebed(text, key_infos):
     """
-    hard_rule: 判断某段文本中是否存在关键信息（此处关键信息为定位到的公司名）
-    step0: 如果text直接与key_infos匹配，则表明定位到的段落全部为公司名信息，无用
-    step1: 先将该段文本按照标点拆分,没有表标点的按照字长切分
-    step2: 将拆分后的文本与关键信息比对
+    功能: 判断文本中是否包含关键信息（如公司名）
+    参数:
+        text - 要检查的文本
+        key_infos - 关键信息列表（公司名等）
+    返回: 布尔值，True表示包含关键信息，False表示不包含
+    步骤:
+        1. 如果文本直接与关键信息高度匹配，认为是无效信息，返回False
+        2. 将文本按标点分割，若无标点则按字长切分
+        3. 检查分割后的文本是否与关键信息匹配
     """
-    # step0
+    # 步骤0: 直接匹配检查
     if get_close_matches(text, key_infos, cutoff=0.8):
         return False
-    # step1
+    # 步骤1: 按标点分割文本
     pattern = r'[。！!？?，,]'
     text_list_span = re.split(pattern, text)
     text_list_span = [item for item in text_list_span if item.strip()]
     if len(text_list_span) == 1:
         text_list_span = [text[i:i + 20] for i in range(0, len(text), 20)]
-    # step2:
+    # 步骤2: 逐段匹配关键信息
     for t in text_list_span:
         matches = get_close_matches(t, key_infos, cutoff=0.3)
         if matches:

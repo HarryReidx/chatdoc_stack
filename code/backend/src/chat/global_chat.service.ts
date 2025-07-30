@@ -166,6 +166,7 @@ export class GlobalChatService {
             isFirstMsg = false;
           } else if (!isFirstMsg && isSecondMsg) {
             firstTokenTime = Date.now().valueOf() - startTime;
+
             isSecondMsg = false;
           }
         };
@@ -177,19 +178,26 @@ export class GlobalChatService {
             if (isJSON && !data) {
               try {
                 const res = JSON.parse(chunkString);
-                if (res.code != 200) {
-                  throw new BadRequestException(res.data.err);
+                // 检查res是否是Response对象
+                if (res && typeof res === 'object' && 'code' in res) {
+                  if (res.code != 200) {
+                    throw new BadRequestException(res.data?.err || res.msg || 'Unknown error');
+                  }
+                  data = res?.data || res;
+                  const chunk = {
+                    code: 200,
+                    data: { content: data.answer, status: 'DOING' },
+                    msg: 'success',
+                  };
+                  streamRes.push('data: ' + JSON.stringify(chunk) + '\n\n');
+                  countTime();
+                } else {
+                  // 如果不是预期的响应格式，抛出错误
+                  throw new BadRequestException('Invalid response format');
                 }
-                data = res?.data || res;
-                const chunk = {
-                  code: 200,
-                  data: { content: data.answer, status: 'DOING' },
-                  msg: 'success',
-                };
-                streamRes.push('data: ' + JSON.stringify(chunk) + '\n\n');
-                countTime();
               } catch (error) {
                 Logger.error('chat response parse error');
+                Logger.error('Error details:', error);
                 reject(error);
               }
             }
@@ -274,11 +282,53 @@ export class GlobalChatService {
           streamRes.pipe(response);
         });
       } else {
-        const result = await backendRequest.post(inferUrl, params) as { code: number; data: any; msg?: string };
-        if (result.code != 200) {
-          throw new BadRequestException(result.data.err);
+        try {
+          const result = await backendRequest.post(inferUrl, params);
+          // 检查result是否是Response对象
+          if (result && typeof result === 'object' && 'code' in result) {
+            // 这是预期的JSON响应
+            if (result['code'] != 200) {
+              const errorMsg = result['data']?.err || result['msg'] || JSON.stringify(result['data']) || 'Unknown error';
+              throw new BadRequestException(errorMsg);
+            }
+            data = result['data'];
+          } else if (result && typeof result === 'object' && 'status' in result && 'data' in result) {
+            // 这是 Axios Response 对象
+            const response = result as AxiosResponse;
+            if (response.status != 200) {
+              let errorMsg = 'Unknown error';
+              if (typeof response.data === 'string') {
+                errorMsg = response.data;
+              } else if (typeof response.data === 'object') {
+                errorMsg = response.data?.err || response.data?.msg || JSON.stringify(response.data) || 'Unknown error';
+              }
+              throw new BadRequestException(errorMsg);
+            }
+            data = response.data['data'] || response.data;
+          } else {
+            // 其他情况，可能是直接的数据
+            data = result;
+          }
+        } catch (error) {
+          Logger.error('chat response parse error');
+          Logger.log(`[原始异常] ${error.constructor.name}: ${error.message}`);
+          Logger.error('Error stack:', error.stack);
+          // 重新抛出更友好的错误信息
+          if (error instanceof BadRequestException) {
+            throw error;
+          }
+          // 处理不同类型的错误
+          if (typeof error === 'object' && error !== null) {
+            if ('message' in error) {
+              throw new BadRequestException(`Chat service error: ${error['message']}`);
+            } else if ('msg' in error) {
+              throw new BadRequestException(`Chat service error: ${error['msg']}`);
+            } else if ('data' in error && error['data'] && typeof error['data'] === 'object' && 'err' in error['data']) {
+              throw new BadRequestException(error['data']['err']);
+            }
+          }
+          throw new BadRequestException(`Chat service error: ${error}`);
         }
-        data = result.data;
       }
       if (data) {
         data.questionSource = questionSource;

@@ -1,9 +1,16 @@
-'''
-Author: longsion<xianglong_chen@intsig.net>
-Date: 2024-05-27 14:34:25
-LastEditors: longsion
-LastEditTime: 2024-10-22 11:10:52
-'''
+"""
+process.py - ChatDoc 问答主流程控制模块
+
+功能：
+- 接收外部请求参数 Params，构造上下文 Context
+- 并行执行合规检测与检索
+- 进行检索结果重排、截断、生成
+- 支持流式输出/非流式问答模式
+- 打点耗时、链路追踪、问题合规性控制
+
+作者：longsion
+"""
+
 import datetime
 import time
 from pkg.global_.objects import Params, Context, Response
@@ -18,6 +25,11 @@ from opentelemetry.trace import get_current_span
 
 
 def process(params: Params) -> Context:
+    """
+    ChatDoc 问答主流程函数：处理一次用户提问到返回答案的完整链路。
+    包括合规检测、检索、重排、上下文构建、生成与追踪等。
+    """
+    logger.info("启动问答主流程")
 
     from .compliance_question import compliance_question
     from .preprocess_question import preprocess_question
@@ -38,104 +50,97 @@ def process(params: Params) -> Context:
     # 赋予trace_id
     context.trace_id = f"{get_current_span().context.trace_id:0x}"
 
-    # 并行合规检测
+    # 启动问题合规性检测线程
     compliance_t = ThreadWithReturnValue(target=compliance_question, args=(context,), parent_span_context=span_ctx)
     compliance_t.start()
 
-    # 预处理问题，分析问题，确定AgentType
+    # 问题预处理（意图识别、标准化等）
+    logger.info("开始预处理问题")
     context = preprocess_question(context)
+    logger.info("预处理完成")
 
-    # 并行全局搜索
+    # 启动全局检索线程
     retrieve_all_t = ThreadWithReturnValue(target=retrieve_small_full, args=(context,))
     retrieve_all_t.start()
 
-    # 预处理与合并检测并行
+    # 等待合规检测完成
     context = compliance_t.join()
     if context.question_compliance is False:
+        logger.warning("问题未通过合规性检测")
         context.answer_response = Response(answer=config["compliance"]["warning_text"], question_compliance=False, trace_id=context.trace_id)
         return context
 
-    # 数据并行检索，定位文件检索 + 全局检索
+    # 执行局部检索（针对用户选定文档）
+    logger.info("开始局部检索")
     context = retrieve_small(context)
+    logger.info("局部检索完成")
+
+    # 等待全局检索线程完成
     context = retrieve_all_t.join()
 
-    # 问题与召回rerank
+    # rerank：基于问题的相似度重新排序
+    logger.info("执行问题级别rerank")
     context = rerank_by_question(context)
+    logger.info("问题 rerank 完成")
 
-    # small2big
+    # small2big：段落上下文扩展
+    logger.info("执行 small2big 拓展段落")
     context = small2big(context)
 
-    # 组合&&截断
+    # truncation：拼接后做截断，控制上下文大小
+    logger.info("执行上下文截断")
     context = truncation(context)
 
-    # if no chat
+    # no_chat 模式直接返回召回内容
     if context.params.no_chat:
+        logger.info("no_chat 模式，直接构造响应")
         context.answer_response = gen_response_by_context(context)
         return context
 
-    # 生成答案后处理
+    # ↓↓↓ 以下为生成环节：流式或非流式 ↓↓↓
 
     def _on_done(context) -> Response:
-        # 兼容异步情况链路上报
         otel_context.attach(span_ctx)
 
-        # 大模型接口报错 - prompt 出现不合法内容
         if context.answer_compliance is False:
             return Response(answer=config["compliance"]["warning_text"], question_compliance=True, answer_compliance=False, trace_id=context.trace_id, durations=context.durations)
 
-        # 校验答案
         context = compliance_answer(context)
         if context.answer_compliance is False:
             return Response(answer=config["compliance"]["warning_text"], question_compliance=True, answer_compliance=False, trace_id=context.trace_id, durations=context.durations)
-        # 获得答案后重排
+
         if len(context.files) < 2:
             context = rerank_by_answer(context)
-        # 异步加上 span_ctx上报
-        context = report_process_result(context)
 
+        context = report_process_result(context)
         return gen_response_by_context(context)
 
     def _after_trunction():
         nonlocal context
-
-        # yield 召回结果
         ori = [
-            dict(
-                ori_id=ori_id,
-                uuid=r.file_uuid,
-                reference_tag=r.reference_tag,
-                kb=r.kb,
-                i=i  # 返回召回的顺序
-            )
+            dict(ori_id=ori_id, uuid=r.file_uuid, reference_tag=r.reference_tag, kb=r.kb, i=i)
             for i, r in enumerate(context.rerank_retrieve_before_qa) for ori_id in r.ori_ids
         ]
-        context.durations.update(
-            推送召回结果=f"{(time.time() - context.start_ts) * 1000:.1f}ms"
-        )
+        context.durations.update(推送召回结果=f"{(time.time() - context.start_ts) * 1000:.1f}ms")
         logger.info(f"推送召回结果 duration: {context.durations['推送召回结果']}")
-        yield set_stream_json(
-            {
-                "status": "DOING",
-                "content": "",
-                "stage": "retrieve_result",
-                "data": dict(source=ori)
-            }
-        )
-        # 生成
-        context = generation(context)
+        yield set_stream_json({
+            "status": "DOING", "content": "", "stage": "retrieve_result", "data": dict(source=ori)
+        })
 
+        logger.info("开始生成答案")
+        context = generation(context)
+        logger.info("生成完成")
         yield from _after_generation()
 
     def _after_generation():
         nonlocal context
         answer_text = ""
         first_ts, last_ts = -1, -1
+
         for x in context.stream_iter:
             if not answer_text:
                 first_ts = time.time()
-                context.durations.update(
-                    首token=f"{(first_ts - context.start_ts) * 1000:.1f}ms"
-                )
+                context.durations.update(首token=f"{(first_ts - context.start_ts) * 1000:.1f}ms")
                 logger.info(f"首token duration: {context.durations['首token']}")
 
             if x == stream_fixes_suffix:
@@ -144,20 +149,19 @@ def process(params: Params) -> Context:
                     尾token=f"{(last_ts - context.start_ts) * 1000:.1f}ms",
                     token速率=f"{len(answer_text)/(last_ts-first_ts):.1f} token/s"
                 )
-                logger.info(f"尾token duration: {context.durations['尾token']}, token速率: {context.durations['token速率']}, ")
-
+                logger.info(f"尾token duration: {context.durations['尾token']}, token速率: {context.durations['token速率']}")
                 yield x
                 break
+
             x_json = get_stream_json(x)
             if x_json["status"] == "DONE":
                 context.llm_answer = answer_text
                 response = _on_done(context)
                 x_json.update(data=response.model_dump_json())
                 yield set_stream_json(x_json)
-            elif x != stream_fixes_suffix and check_repetition(answer_text, x_json["content"]):
+            elif check_repetition(answer_text, x_json["content"]):
                 context.llm_answer = remove_repetition(answer_text, x_json["content"])
                 response = _on_done(context)
-                # response.answer_compliance = False
                 x_json.update(data=response.model_dump_json(), status="DONE")
                 yield set_stream_json(x_json)
                 last_ts = time.time()
@@ -165,18 +169,19 @@ def process(params: Params) -> Context:
                     尾token=f"{(last_ts - context.start_ts) * 1000:.1f}ms",
                     token速率=f"{len(answer_text)/(last_ts-first_ts):.1f} token/s"
                 )
-                logger.info(f"尾token duration: {context.durations['尾token']}, token速率: {context.durations['token速率']}, ")
+                logger.info(f"尾token duration: {context.durations['尾token']}, token速率: {context.durations['token速率']}")
                 yield stream_fixes_suffix
                 break
             else:
-                answer_text += x_json["content"] if x != stream_fixes_suffix else ""
+                answer_text += x_json["content"]
                 yield x
 
     if context.params.stream:
         context.answer_response_iter = _after_trunction()
     else:
-        # 生成
+        logger.info("开始生成答案")
         context = generation(context)
+        logger.info("生成结束，构造响应对象")
         context.answer_response = _on_done(context)
 
     return context

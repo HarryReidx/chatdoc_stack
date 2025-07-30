@@ -16,7 +16,33 @@ from pkg.doc.doc_parse import local_or_remote_exist as local_or_remote_exist_doc
 from pkg.doc.catalog import local_or_remote_exist as local_or_remote_exist_catalog, upload_catalog
 from pkg.utils.thread_with_return_value import ThreadWithReturnValue
 from pkg.clients.textin_ocr import TextinOcr
+from pkg.clients.simple_pdf_client import SimplePDFClient
+
+# 条件导入megaparse，如果有版本冲突就跳过
+try:
+    from pkg.clients.megaparse_client import MegaParseClient
+    MEGAPARSE_AVAILABLE = True
+    print("✅ MegaParse可用")
+except ImportError as e:
+    print(f"⚠️ MegaParse不可用: {e}")
+    print("   将使用SimplePDFClient作为替代")
+    MEGAPARSE_AVAILABLE = False
+
+# 条件导入fake megaparse
+try:
+    from pkg.clients.fake_megaparse import FakeMegaParseClient
+    FAKE_MEGAPARSE_AVAILABLE = True
+    print("✅ Fake MegaParse可用")
+except ImportError as e:
+    print(f"⚠️ Fake MegaParse不可用: {e}")
+    FAKE_MEGAPARSE_AVAILABLE = False
+
 from pkg.utils.logger import logger
+
+# 添加MegaParse客户端
+textin_ocr = None
+megaparse_client = None
+fake_megaparse_client = None
 
 
 class FileImage(BaseModel):
@@ -52,23 +78,66 @@ def parse_document_new(context: Context) -> Context:
 
 @retry_exponential_backoff()
 def request_parser(context: Context):
-    """
-    调用pdf2md的解析函数
-    :param pdf_file_path: 需要解析的文件路径地址
-    :return: 解析的json结果
-    """
-    filepath = context.org_file_path
-    with open(filepath, 'rb') as f:
-        data = f.read()
-    st = time.time()
-    response = TextinOcr().recognize_pdf2md(image=data)
+    global textin_ocr, megaparse_client, fake_megaparse_client
+    
+    # 根据配置选择解析器
+    parse_engine = config.get("parse", {}).get("engine", "pdf2md")
+    
+    if parse_engine == "megaparse" and MEGAPARSE_AVAILABLE:
+        # 使用MegaParse
+        if megaparse_client is None:
+            megaparse_client = MegaParseClient()
+        
+        logger.info(f"使用MegaParse解析文档: {context.org_file_path}")
+        with open(context.org_file_path, "rb") as f:
+            image = f.read()
+        
+        try:
+            response = megaparse_client.recognize_pdf2md(image)
+            response.raise_for_status()
+        except Exception as e:
+            logger.error(f"MegaParse解析失败: {e}")
+            raise FileProcessException(f"MegaParse解析失败: {e}")
+            
+    elif parse_engine == "megaparse" and FAKE_MEGAPARSE_AVAILABLE:
+        # 使用Fake MegaParse
+        if fake_megaparse_client is None:
+            fake_megaparse_client = FakeMegaParseClient()
+        
+        logger.info(f"使用Fake MegaParse解析文档: {context.org_file_path}")
+        with open(context.org_file_path, "rb") as f:
+            image = f.read()
+        
+        try:
+            response = fake_megaparse_client.recognize_pdf2md(image)
+            response.raise_for_status()
+        except Exception as e:
+            logger.error(f"Fake MegaParse解析失败: {e}")
+            raise FileProcessException(f"Fake MegaParse解析失败: {e}")
+            
+    else:
+        # 使用TEXTIN OCR（默认）
+        if textin_ocr is None:
+            textin_ocr = TextinOcr()
+
+        logger.info(f"使用TEXTIN OCR解析文档: {context.org_file_path}")
+        with open(context.org_file_path, "rb") as f:
+            image = f.read()
+
+        try:
+            response = textin_ocr.recognize_pdf2md(image)
+            response.raise_for_status()
+        except Exception as e:
+            logger.error(f"TEXTIN OCR解析失败: {e}")
+            raise FileProcessException(f"TEXTIN OCR解析失败: {e}")
+
     response.raise_for_status()
     res_json_all = xjson.loads(response.content)
     if res_json_all["code"] != 200:
-        raise FileProcessException(f"pdf2md parse error: {res_json_all}")
+        raise FileProcessException(f"PDF解析错误: {res_json_all}")
 
     context.file_meta.page_number = len(res_json_all["metrics"])
-    logger.info(f'pdf2md cost: {1000*(time.time() - st):.1f}ms, page_num: {context.file_meta.page_number}')
+    logger.info(f'PDF解析完成，引擎: {engine}, 耗时: {1000*(time.time() - st):.1f}ms, 页数: {context.file_meta.page_number}')
     handle_doc_parse(context=context, res_json_all=res_json_all)
     handle_catalog(context=context, res_json_all=res_json_all)
 
@@ -91,7 +160,7 @@ def find_bounding_rectangle(rectangles):
         max_x = max(max_x, x1, x2)
         max_y = max(max_y, y1, y2)
 
-    return [min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y]
+    return [min_x, min_y, max_x, min_y, max_x, min_y, min_x, max_y]
 
 
 def handle_doc_parse(context: Context, res_json_all):

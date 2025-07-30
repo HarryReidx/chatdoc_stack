@@ -1,6 +1,16 @@
 fastapi==0.104.1
 uvicorn==0.24.0
-llama-parse==0.4.0
 python-multipart==0.0.6
-aiofiles==0.23.2
+aiofiles==23.2.1
 pydantic==2.5.0
+httpx==0.25.1
+python-docx==1.0.1
+PyMuPDF==1.23.6
+
+# 解析器依赖
+llama-parse==0.4.0
+
+# 添加MegaParse依赖（本地安装）
+# 如果MegaParse已经在项目目录中，可以使用以下方式安装
+# ./MegaParse/libs/megaparse
+# ./MegaParse/libs/megaparse_sdk

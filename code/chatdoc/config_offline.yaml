@@ -1,0 +1,174 @@
+# 完全离线配置 - 用于测试本地服务
+# 此配置移除了所有外部依赖
+
+# ES配置（模拟）
+es:
+  hosts: 'http://localhost:9200'  # 不会实际连接
+  username: 'elastic'
+  password: 'changeme'
+  index_p_doc_item: 'v5_p_doc_item'
+  index_p_doc_table: 'v5_p_doc_table'
+  index_p_doc_fragment: 'v5_p_doc_fragment'
+  index_p_file: 'v5_p_file'
+  index_company: 'v5_company'
+  index_doc_item: 'v5_doc_item'
+  index_doc_table: 'v5_doc_table'
+  index_doc_fragment: 'v5_doc_fragment'
+  index_file: 'v5_file'
+
+# Redis配置（模拟）
+redis:
+  host: 'localhost'
+  port: 6379
+  db: 0
+  username: ''
+  password: ''
+
+# 线程池配置
+threadpool:
+  doc_process_worker: 2
+  doc_process_queue_size: 20
+  global_worker: 10
+
+# 代理配置（禁用）
+proxy:
+  url: ''
+
+# 向量数据库配置
+vector:
+  model: 'local'  # 使用本地模式
+
+# 本地服务配置 - 替代TEXTIN
+local_services:
+  embedding:
+    model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    device: "cpu"
+    batch_size: 4
+    implementation: "manual"
+  rerank:
+    model: "simple"
+    device: "cpu"
+    implementation: "manual"
+  pdf_parser:
+    engine: "pypdf2"
+  storage:
+    type: "local"
+    base_path: "./data/images"
+
+# 兼容性设置
+compatibility:
+  use_manual_implementation: true
+  fallback_to_simple: true
+  max_retries: 3
+
+# 性能配置
+performance:
+  cpu_threads: 4
+  max_batch_size: 8
+  timeout: 30
+
+# 解析配置
+parse:
+  doc_parse_url: ''
+  catalog_url: ''
+  parse_concurrency: '2'
+  engine: 'pypdf2'  # 使用pypdf2而不是megaparse
+
+# 检索配置
+retrieve:
+  fixed_table_keyword_threshold: 0.65
+  retrieval_top_n: 10
+  retrieval_max_length: 20000
+
+# 文件路径配置
+location:
+  base_file_path: '{BASE_DIR}/data/'
+  summary_cache_path: '{BASE_DIR}/__summary_cache__/'
+  base_doc_parse_path: '{BASE_DIR}/parse/doc-paser/parser-%s.json'
+  base_catalog_path: '{BASE_DIR}/parse/catalog/catalog-backend-%s.json'
+  base_frontend_catalog_path: '{BASE_DIR}/parse/catalog/catalog-%s.json'
+
+# 存储配置（本地）
+storage:
+  upload_address: './data/uploads/'
+  download_address: './data/downloads/'
+
+# 推理配置
+infer:
+  rough_rank_score: 0.8
+  re_rank_score: 0.8
+  question_keyword_url: ''
+  openkie_url: ''
+
+# 后端配置（禁用）
+backend:
+  node_url: ''
+  parse_status: ''
+
+# Jaeger配置（禁用）
+jaeger:
+  collector_url: ''
+  service_name: 'chatdoc-offline'
+  agent_host_name: 'localhost'
+  exporter: 'none'
+
+# LLM配置（使用本地或简单模型）
+llm:
+  model: 'simple'  # 简单模式
+
+# 各种API配置（全部禁用，用于离线测试）
+gpt:
+  proxy: ''
+  model: 'gpt-3.5-turbo'
+
+tyqw:
+  url: ''
+  model: ''
+
+tyqwapi:
+  url: ''
+  model: ''
+  api_key: ''
+
+deepseek:
+  url: ''
+  model: ''
+  api_key: ''
+
+tianji:
+  url: ''
+
+baichuan:
+  url: ''
+  model: ''
+  api_key: ''
+
+kimichat:
+  url: ''
+  model: ''
+  api_key: ''
+
+chatglm:
+  url: ''
+  model: ''
+  api_key: ''
+
+# 合规检查（禁用）
+compliance:
+  text_url: ''
+  timeout: 10
+  censors: 'none'
+  warning_text: '抱歉，您的提问内容与本知识库无关，请重新提问，谢谢！'
+
+# PDF解析配置
+megaparse:
+  options_dpi: 144
+  options_page_start: 0
+  options_page_count: 100  # 减少页数限制
+  options_apply_document_tree: 1
+  options_markdown_details: 1
+  options_page_details: 1
+  options_table_flavor: 'html'
+  options_get_image: 'none'  # 禁用图片处理
+  options_parse_mode: 'auto'
+  options_char_details: 0  # 禁用字符详情

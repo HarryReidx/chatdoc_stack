@@ -28,7 +28,7 @@ RUN yarn build
 
 
 
-FROM node:20.17.0-alpine AS builder
+FROM node:20.17.0-alpine AS production
 
 RUN mkdir -p /app
 WORKDIR /app
@@ -38,14 +38,16 @@ ENV NODE_OPTIONS=--max-old-space-size=${MAX_OLD_SPACE_SIZE}
 ENV KB_API=
 ENV AI_API=
 
+# 确保.output目录存在并正确复制
 COPY --from=build-pro /app/.output ./.output
-COPY entrypoint.sh .
+
+# 检查并确保必要的目录存在
+RUN mkdir -p /app/.output/public/_nuxt /app/.output/server/chunks/build
+
+# 复制入口脚本并设置权限
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
 
-
-
-COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-# CMD ['node', '.output/server/index.mjs']

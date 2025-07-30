@@ -10,29 +10,41 @@ import heapq
 from pkg.utils.lru_cache import LRUCacheDict, LRUCachedFunction, BatchCacheManager
 from pkg.config import config
 from pkg.utils import global_thread_pool, retry_exponential_backoff
+from pkg.embedding.local_embedding import local_embedding_single, local_embedding_multi
+from pkg.compatibility_adapter import get_compatibility_embedding_service
 
 
 @retry_exponential_backoff()
 def acge_embedding(text, dimension=1024, digit=8):
-    import requests
+    """
+    文本嵌入函数 - 支持本地和TEXTIN两种方式
+    """
+    # 检查是否配置了本地服务
+    if config.get("local_services", {}).get("embedding"):
+        # 使用兼容性嵌入服务
+        service = get_compatibility_embedding_service()
+        return service.encode_single(text, dimension, digit)
+    else:
+        # 使用原TEXTIN服务
+        import requests
 
-    json_text = {
-        "input": [text],
-        "matryoshka_dim": dimension,
-        "digit": digit,
-    }
-    url = config["textin"]["embedding_url"]
-    headers = {
-        "x-ti-app-id": config["textin"]["app_id"],
-        "x-ti-secret-code": config["textin"]["app_secret"],
-    }
+        json_text = {
+            "input": [text],
+            "matryoshka_dim": dimension,
+            "digit": digit,
+        }
+        url = config["textin"]["embedding_url"]
+        headers = {
+            "x-ti-app-id": config["textin"]["app_id"],
+            "x-ti-secret-code": config["textin"]["app_secret"],
+        }
 
-    completion = requests.post(url=url, headers=headers, json=json_text)
-    completion.raise_for_status()
-    resp = completion.json()
-    if resp["code"] != 200:
-        raise Exception(resp["message"])
-    return resp["result"]["embedding"][0]
+        completion = requests.post(url=url, headers=headers, json=json_text)
+        completion.raise_for_status()
+        resp = completion.json()
+        if resp["code"] != 200:
+            raise Exception(resp["message"])
+        return resp["result"]["embedding"][0]
 
 
 acg_lru_cache = LRUCacheDict(max_size=5000, expiration=60 * 60)
@@ -41,26 +53,36 @@ acge_embedding_with_cache = LRUCachedFunction(acge_embedding, acg_lru_cache, cac
 
 @retry_exponential_backoff()
 def acge_embedding_multi(text_list, dimension=1024, digit=8, headers=None, url=None):
-    import requests
+    """
+    批量文本嵌入函数 - 支持本地和TEXTIN两种方式
+    """
+    # 检查是否配置了本地服务
+    if config.get("local_services", {}).get("embedding"):
+        # 使用兼容性嵌入服务
+        service = get_compatibility_embedding_service()
+        return service.encode_batch(text_list, dimension, digit)
+    else:
+        # 使用原TEXTIN服务
+        import requests
 
-    json_text = {
-        "input": text_list,
-        "matryoshka_dim": dimension,
-        "digit": digit
-    }
-    headers = headers or {}
-    headers.update({
-        "x-ti-app-id": config["textin"]["app_id"],
-        "x-ti-secret-code": config["textin"]["app_secret"],
-    })
-    completion = requests.post(url=url or config["textin"]["embedding_url"],
-                               headers=headers or None,
-                               json=json_text)
-    completion.raise_for_status()
-    resp = completion.json()
-    if resp["code"] != 200:
-        raise Exception(resp["message"])
-    return resp["result"]["embedding"]
+        json_text = {
+            "input": text_list,
+            "matryoshka_dim": dimension,
+            "digit": digit
+        }
+        headers = headers or {}
+        headers.update({
+            "x-ti-app-id": config["textin"]["app_id"],
+            "x-ti-secret-code": config["textin"]["app_secret"],
+        })
+        completion = requests.post(url=url or config["textin"]["embedding_url"],
+                                   headers=headers or None,
+                                   json=json_text)
+        completion.raise_for_status()
+        resp = completion.json()
+        if resp["code"] != 200:
+            raise Exception(resp["message"])
+        return resp["result"]["embedding"]
 
 
 acg_embedding_multi_batch_with_cache = BatchCacheManager(acge_embedding_multi, cache=acg_lru_cache, batch_size=16, cache_key_suffix="acge_embedding", thread_pool=global_thread_pool)

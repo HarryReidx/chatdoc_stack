@@ -14,6 +14,7 @@ from pkg.es.es_p_doc_table import PDocTableModel
 from pkg.rerank import rerank_api_by_cache
 from pkg.utils import duplicates_list, softmax, split_list
 from pkg.utils.decorators import register_span_func
+from pkg.utils.logger import logger
 
 import re
 import numpy as np
@@ -30,7 +31,7 @@ def lambda_func(context: Context):
     ])
 
 
-@register_span_func(func_name="粗排-问题rerank", span_export_func=lambda_func)
+@register_span_func(func_name="粗排-问题rerank22222222", span_export_func=lambda_func)
 def rerank_by_question(context: Context) -> Context:
     """
     去重逻辑说明：
@@ -46,6 +47,7 @@ def rerank_by_question(context: Context) -> Context:
     step2:命中率一致的根据原始召回分数排序
     step3:当召回的片段命中次数都为1次时，将embedding的结果与bm25结果交叉排
     """
+    logger.info("3333333333333")
     # filter empty ebed_text
     context.normal_table_retrieve_small = [cur for cur in context.normal_table_retrieve_small if cur.ebed_text]
     context.fragment_retrieve_small = [cur for cur in context.fragment_retrieve_small if cur.ebed_text]

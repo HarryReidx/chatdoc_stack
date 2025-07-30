@@ -17,8 +17,16 @@ dayjs.locale('zh-cn');
 async function bootstrap() {
   console.log('process.env.FRONT_END_URL', process.env.FRONT_END_URL);
   console.log('process.env.BACKEND_NODE_URL', process.env.BACKEND_NODE_URL);
+
+  // 处理CORS origin配置 - 将逗号分隔的字符串转换为数组
+  let corsOrigin: string | string[] = '*';
+  if (process.env.FRONT_END_URL) {
+    corsOrigin = process.env.FRONT_END_URL.split(',').map(url => url.trim());
+    console.log('CORS origins:', corsOrigin);
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    cors: { credentials: true, origin: process.env.FRONT_END_URL || '*' },
+    cors: { credentials: true, origin: corsOrigin },
   });
 
   app.set('trust proxy', true);

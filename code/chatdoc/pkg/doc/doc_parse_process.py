@@ -1,5 +1,12 @@
 import numpy as np
-from shapely.geometry import LineString, Point
+
+# 条件导入shapely，如果不可用则使用简单实现
+try:
+    from shapely.geometry import LineString, Point
+    print("✅ 使用shapely几何库")
+except ImportError:
+    from pkg.utils.simple_geometry import LineString, Point
+    print("⚠️ shapely不可用，使用简单几何实现")
 
 # @dataclass
 # class docLine:

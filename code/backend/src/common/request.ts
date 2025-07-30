@@ -11,6 +11,13 @@ const setInterceptors = (request) => {
     } else {
       return res;
     }
+  }, (error) => {
+    // 错误处理
+    if (error.response && error.response.data) {
+      // 如果响应中有数据，直接返回错误响应数据
+      return Promise.reject(error.response.data);
+    }
+    return Promise.reject(error);
   });
 };
 
