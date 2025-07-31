@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 
-axios.defaults.timeout = 1000 * 60 * 10;
+axios.defaults.timeout = 1000 * 60 * 2; // 改为2分钟超时
 const setInterceptors = (request) => {
   request.interceptors.response.use((res: AxiosResponse) => {
     if (

@@ -1158,7 +1158,7 @@ export class DocumentService {
   async setParseTimeout() {
     const parseList = await this.documentRepository.findBy({
       status: In([DocumentStatus.uploaded, DocumentStatus.docparser, DocumentStatus.catalog]),
-      updateTime: LessThan(dayjs().subtract(10, 'minutes').toDate()),
+      updateTime: LessThan(dayjs().subtract(30, 'minutes').toDate()), // 改为30分钟超时
     });
     for (const item of parseList) {
       Logger.log(item.id, '文档解析超时');

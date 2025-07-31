@@ -76,7 +76,7 @@ compatibility:
 performance:
   cpu_threads: 4
   max_batch_size: 8
-  timeout: 30
+  timeout: 120  # 增加到2分钟
 parse:
   doc_parse_url: 'http://chatdoc-proxy:8000'
   catalog_url: 'xxxx1551'

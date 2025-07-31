@@ -4,7 +4,7 @@ export const tokenExpiry = 1000 * 60 * 60 * 24 * 14;
 export const tokenKey = 'gpt-qa-token';
 
 // http timeout
-export const timeout = 1000 * 60 * 10;
+export const timeout = 1000 * 60 * 2; // 改为2分钟超时
 
 // 文件服务器path
 export enum storagePath {

@@ -240,7 +240,7 @@ services:
 
   # 文档问答代理服务
   chatdoc-proxy:
-    build: 
+    build:
       context: ../code/chatdoc-proxy
       dockerfile: Dockerfile
     image: doc-proxy:1.0
@@ -249,7 +249,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - chatdoc_data:/app/data
+      - chatdoc_data:/code/data
     environment:
       - BACKEND_URL=http://chatdoc:5000
     depends_on:
